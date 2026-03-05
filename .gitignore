@@ -1,0 +1,26 @@
+# Build artifacts
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# User-specific files
+uploads/
+*.zip
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
