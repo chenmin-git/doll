@@ -11,17 +11,18 @@ public class AfterSale {
     private Long id;
     private Long orderId;
     private Long buyerId;
+    private Long sellerId;
     private String reason;
     private Integer status;
     private String description;
     private String images;
-    
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
-    
+
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-    
+
     @TableLogic
     private Integer isDeleted;
 }

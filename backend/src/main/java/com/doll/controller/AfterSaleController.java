@@ -6,6 +6,7 @@ import com.doll.entity.AfterSale;
 import com.doll.service.AfterSaleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -25,8 +26,14 @@ public class AfterSaleController {
     @GetMapping("/buyer/{buyerId}")
     public Result<List<AfterSale>> getByBuyer(@PathVariable Long buyerId) {
         LambdaQueryWrapper<AfterSale> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AfterSale::getBuyerId, buyerId);
-        wrapper.orderByDesc(AfterSale::getCreateTime);
+        wrapper.eq(AfterSale::getBuyerId, buyerId).orderByDesc(AfterSale::getCreateTime);
+        return Result.success(afterSaleService.list(wrapper));
+    }
+
+    @GetMapping("/order/{orderId}")
+    public Result<List<AfterSale>> getByOrder(@PathVariable Long orderId) {
+        LambdaQueryWrapper<AfterSale> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AfterSale::getOrderId, orderId);
         return Result.success(afterSaleService.list(wrapper));
     }
 

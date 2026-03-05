@@ -11,6 +11,7 @@
           <el-menu-item index="products">商品管理</el-menu-item>
           <el-menu-item index="auctions">拍卖活动</el-menu-item>
           <el-menu-item index="orders">订单管理</el-menu-item>
+          <el-menu-item index="after_sales">售后管理</el-menu-item>
           <el-menu-item index="reviews">评价管理</el-menu-item>
           <el-menu-item index="complaints">举报投诉</el-menu-item>
           <!-- 个人中心入口已从菜单隐藏，仅通过右上角进入 -->
@@ -96,7 +97,7 @@
             </el-table-column>
             <el-table-column label="定时上架时间" width="160">
               <template #default="scope">
-                <span v-if="scope.row.status === 2">{{ scope.row.publishTime || '—' }}</span>
+                <span v-if="scope.row.status === 2">{{ formatFullTime(scope.row.publishTime) }}</span>
                 <span v-else>—</span>
               </template>
             </el-table-column>
@@ -160,13 +161,15 @@
               </template>
             </el-table-column>
             <el-table-column label="开始时间" min-width="160">
-              <template #default="scope">{{ scope.row.startTime || '—' }}</template>
+              <template #default="scope">{{ formatFullTime(scope.row.startTime) }}</template>
             </el-table-column>
             <el-table-column label="结束时间" min-width="160">
-              <template #default="scope">{{ scope.row.endTime || '—' }}</template>
+              <template #default="scope">{{ formatFullTime(scope.row.endTime) }}</template>
             </el-table-column>
-            <el-table-column label="中标者ID" width="100">
-              <template #default="scope">{{ scope.row.winnerId || '—' }}</template>
+            <el-table-column label="中标者" width="140">
+              <template #default="scope">
+                {{ scope.row.winnerName || (scope.row.winnerId ? ('用户#' + scope.row.winnerId) : '—') }}
+              </template>
             </el-table-column>
             <el-table-column label="操作" width="150" fixed="right">
               <template #default="scope">
@@ -178,60 +181,70 @@
           </el-table>
         </div>
 
-        <!-- ==================== 订单管理 ==================== -->
-        <div v-if="activeMenu === 'orders'" class="page-section">
+        <!-- ==================== 售后管理 ==================== -->
+        <div v-if="activeMenu === 'after_sales'" class="page-section">
           <div class="section-header">
-            <h3>📋 订单管理</h3>
+            <h3>🛠️ 售后服务管理</h3>
           </div>
 
           <div class="stats-row">
-            <div class="stat-card">
-              <div class="stat-value">{{ orders.length }}</div>
-              <div class="stat-label">全部订单</div>
-            </div>
             <div class="stat-card stat-active">
-              <div class="stat-value">{{ orders.filter(o => o.status === 1).length }}</div>
-              <div class="stat-label">待发货</div>
+              <div class="stat-value">{{ afterSales.filter(a => a.status === 0).length }}</div>
+              <div class="stat-label">待处理</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value">{{ orders.filter(o => o.status === 3).length }}</div>
-              <div class="stat-label">已完成</div>
+              <div class="stat-value">{{ afterSales.filter(a => a.status === 1).length }}</div>
+              <div class="stat-label">处理中</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ afterSales.length }}</div>
+              <div class="stat-label">累计售后</div>
             </div>
           </div>
 
-          <el-table :data="orders" class="custom-table" stripe>
-            <el-table-column prop="orderNo" label="订单号" min-width="150" />
-            <el-table-column label="商品信息" min-width="200">
-              <template #default="scope">
-                <div v-for="item in scope.row.items" :key="item.id" class="order-product-item">
-                  <el-image :src="item.productImage" class="order-product-img">
-                    <template #error><div class="img-error">🧸</div></template>
-                  </el-image>
-                  <div class="order-product-info">
-                    <div class="name">{{ item.productName }}</div>
-                    <div class="count">x{{ item.quantity }}</div>
-                  </div>
-                </div>
-              </template>
+          <el-table :data="afterSales" class="custom-table" stripe>
+            <el-table-column prop="orderId" label="订单号" width="100" />
+            <el-table-column label="买家" width="120">
+                <template #default="scope">
+                    <span class="u-name">{{ scope.row.buyerName || '用户#'+scope.row.buyerId }}</span>
+                </template>
             </el-table-column>
-            <el-table-column label="金额" width="100">
-              <template #default="scope">
-                <span class="price-text">¥{{ scope.row.totalAmount }}</span>
-              </template>
+            <el-table-column label="商品凭证" width="100">
+                <template #default="scope">
+                    <div class="complaint-images" v-if="scope.row.images">
+                        <el-image 
+                            v-for="(img, index) in parseImages(scope.row.images)" 
+                            :key="index"
+                            :src="img" 
+                            :preview-src-list="parseImages(scope.row.images)"
+                            class="mini-complaint-img"
+                            fit="cover"
+                        />
+                    </div>
+                    <span v-else style="color: #ccc">无</span>
+                </template>
             </el-table-column>
+            <el-table-column prop="reason" label="申请原因" width="120" />
+            <el-table-column prop="description" label="详细说明" min-width="200" show-overflow-tooltip />
             <el-table-column label="状态" width="100">
               <template #default="scope">
-                <el-tag v-if="scope.row.status === 0" effect="light" round>待支付</el-tag>
-                <el-tag v-else-if="scope.row.status === 1" type="warning" effect="light" round>待发货</el-tag>
-                <el-tag v-else-if="scope.row.status === 2" type="info" effect="light" round>待收货</el-tag>
-                <el-tag v-else-if="scope.row.status === 3" type="success" effect="light" round>已完成</el-tag>
-                <el-tag v-else type="danger" effect="light" round>已取消</el-tag>
+                <el-tag v-if="scope.row.status === 0" type="danger" effect="light" round>待审核</el-tag>
+                <el-tag v-else-if="scope.row.status === 1" type="warning" effect="light" round>处理中</el-tag>
+                <el-tag v-else-if="scope.row.status === 2" type="success" effect="light" round>已完成</el-tag>
+                <el-tag v-else type="info" effect="light" round>已驳回</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createTime" label="下单时间" min-width="160" />
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column label="申请时间" width="160">
+                <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" fixed="right">
               <template #default="scope">
-                <el-button v-if="scope.row.status === 1" size="small" type="primary" plain @click="shipOrder(scope.row.id)">发货</el-button>
+                <div v-if="scope.row.status === 0">
+                  <el-button size="small" type="success" plain @click="handleAfterSaleStatus(scope.row.id, 1)">通过</el-button>
+                  <el-button size="small" type="danger" plain @click="handleAfterSaleStatus(scope.row.id, 3)">驳回</el-button>
+                </div>
+                <el-button v-else-if="scope.row.status === 1" size="small" type="primary" plain @click="handleAfterSaleStatus(scope.row.id, 2)">完成处理</el-button>
+                <span v-else>—</span>
               </template>
             </el-table-column>
           </el-table>
@@ -263,14 +276,41 @@
           </div>
 
           <el-table :data="reviews" class="custom-table" stripe>
-            <el-table-column prop="productId" label="商品ID" width="90" />
+            <el-table-column label="评价用户" width="170">
+              <template #default="scope">
+                <span>{{ scope.row.buyerName || ('用户#' + scope.row.buyerId) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="商品信息" min-width="220">
+              <template #default="scope">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <el-image
+                    v-if="scope.row.productImage"
+                    :src="scope.row.productImage"
+                    style="width:42px;height:42px;border-radius:6px;"
+                    fit="cover"
+                  />
+                  <div style="display:flex;flex-direction:column;">
+                    <span style="font-weight:600;">{{ scope.row.productName || ('商品#' + scope.row.productId) }}</span>
+                    <span style="font-size:12px;color:#999;">ID: {{ scope.row.productId }}</span>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column label="评分" width="180">
               <template #default="scope">
                 <el-rate v-model="scope.row.rating" disabled />
               </template>
             </el-table-column>
             <el-table-column prop="content" label="评价内容" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="createTime" label="评价时间" width="160" />
+            <el-table-column label="评价时间" width="180">
+              <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="110" fixed="right">
+              <template #default="scope">
+                <el-button size="small" type="primary" plain @click="openReviewDetail(scope.row)">查看详情</el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </div>
 
@@ -296,6 +336,31 @@
           </div>
 
           <el-table :data="complaints" class="custom-table" stripe>
+            <el-table-column label="投诉用户" width="170">
+              <template #default="scope">
+                <span>{{ scope.row.submitterName || ('用户#' + scope.row.submitterId) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="投诉对象" min-width="220">
+              <template #default="scope">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <el-image
+                    v-if="scope.row.targetProductImage"
+                    :src="scope.row.targetProductImage"
+                    style="width:42px;height:42px;border-radius:6px;"
+                    fit="cover"
+                  />
+                  <div style="display:flex;flex-direction:column;">
+                    <span style="font-weight:600;">
+                      {{ scope.row.targetProductName || scope.row.targetDisplay || ('目标#' + scope.row.targetId) }}
+                    </span>
+                    <span style="font-size:12px;color:#999;">
+                      {{ scope.row.type === 2 ? '商品投诉' : '卖家投诉' }}
+                    </span>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="reason" label="投诉原因" min-width="200" show-overflow-tooltip />
             <el-table-column label="状态" width="100">
               <template #default="scope">
@@ -307,9 +372,12 @@
             <el-table-column label="处理结果" min-width="160" show-overflow-tooltip>
               <template #default="scope">{{ scope.row.result || '—' }}</template>
             </el-table-column>
-            <el-table-column prop="createTime" label="投诉时间" width="160" />
-            <el-table-column label="操作" width="160" fixed="right">
+            <el-table-column label="投诉时间" width="180">
+              <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="220" fixed="right">
               <template #default="scope">
+                <el-button size="small" type="info" plain @click="openComplaintDetail(scope.row)">查看详情</el-button>
                 <el-button v-if="scope.row.status < 2" size="small" type="primary" plain @click="openComplaintDialog(scope.row)">处理</el-button>
               </template>
             </el-table-column>
@@ -403,7 +471,14 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="productForm.status === 2" label="上架时间">
-          <el-date-picker v-model="productForm.publishTime" type="datetime" placeholder="选择上架时间" style="width: 100%" />
+          <el-date-picker
+            v-model="productForm.publishTime"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            format="YYYY-MM-DD HH:mm:ss"
+            placeholder="选择上架时间"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -426,10 +501,24 @@
           </el-input>
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker v-model="auctionForm.startTime" type="datetime" placeholder="选择开始时间" style="width: 100%" />
+          <el-date-picker
+            v-model="auctionForm.startTime"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            format="YYYY-MM-DD HH:mm:ss"
+            placeholder="选择开始时间"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="结束时间">
-          <el-date-picker v-model="auctionForm.endTime" type="datetime" placeholder="选择结束时间" style="width: 100%" />
+          <el-date-picker
+            v-model="auctionForm.endTime"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            format="YYYY-MM-DD HH:mm:ss"
+            placeholder="选择结束时间"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -453,6 +542,77 @@
         <el-button type="primary" @click="submitComplaintHandle">确认处理</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="reviewDetailVisible" title="评价详情" width="620px" class="custom-dialog">
+      <div v-if="selectedReview">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="评价用户">{{ selectedReview.buyerName || ('用户#' + selectedReview.buyerId) }}</el-descriptions-item>
+          <el-descriptions-item label="评价时间">{{ formatFullTime(selectedReview.createTime) }}</el-descriptions-item>
+          <el-descriptions-item label="商品名称">{{ selectedReview.productName || ('商品#' + selectedReview.productId) }}</el-descriptions-item>
+          <el-descriptions-item label="商品ID">{{ selectedReview.productId }}</el-descriptions-item>
+          <el-descriptions-item label="商品图片" :span="2">
+            <el-image
+              v-if="selectedReview.productImage"
+              :src="selectedReview.productImage"
+              :preview-src-list="[selectedReview.productImage]"
+              style="width: 72px; height: 72px; border-radius: 8px; border: 1px solid #eee;"
+              fit="cover"
+            />
+            <span v-else style="color:#999;">无图片</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="评分" :span="2">
+            <el-rate v-model="selectedReview.rating" disabled />
+          </el-descriptions-item>
+          <el-descriptions-item label="评价内容" :span="2">{{ selectedReview.content || '—' }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <template #footer>
+        <el-button @click="reviewDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="complaintDetailVisible" title="投诉详情" width="680px" class="custom-dialog">
+      <div v-if="selectedComplaint">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="投诉用户">{{ selectedComplaint.submitterName || ('用户#' + selectedComplaint.submitterId) }}</el-descriptions-item>
+          <el-descriptions-item label="投诉时间">{{ formatFullTime(selectedComplaint.createTime) }}</el-descriptions-item>
+          <el-descriptions-item label="投诉对象">
+            {{ selectedComplaint.targetProductName || selectedComplaint.targetDisplay || ('目标#' + selectedComplaint.targetId) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="对象类型">{{ selectedComplaint.type === 2 ? '商品' : '卖家' }}</el-descriptions-item>
+          <el-descriptions-item label="投诉原因" :span="2">{{ selectedComplaint.reason || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="处理状态">{{ selectedComplaint.status === 0 ? '待处理' : (selectedComplaint.status === 1 ? '处理中' : '已处理') }}</el-descriptions-item>
+          <el-descriptions-item label="处理结果">{{ selectedComplaint.result || '—' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">投诉凭证</div>
+          <div class="complaint-images" v-if="parseImages(selectedComplaint.images).length > 0">
+            <el-image
+              v-for="(img, index) in parseImages(selectedComplaint.images)"
+              :key="index"
+              :src="img"
+              :preview-src-list="parseImages(selectedComplaint.images)"
+              class="mini-complaint-img"
+              fit="cover"
+            />
+          </div>
+          <div class="complaint-images" v-else-if="selectedComplaint.targetProductImage">
+            <el-image
+              :src="selectedComplaint.targetProductImage"
+              :preview-src-list="[selectedComplaint.targetProductImage]"
+              class="mini-complaint-img"
+              fit="cover"
+            />
+            <span style="color:#999; font-size:12px;">未上传凭证，显示被投诉商品图</span>
+          </div>
+          <div v-else style="color:#999;">无凭证图片</div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="complaintDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -471,15 +631,21 @@ const activeMenu = ref('products')
 const products = ref([])
 const auctions = ref([])
 const orders = ref([])
+const paidAuctionRevenue = ref(0)
 const reviews = ref([])
 const complaints = ref([])
+const afterSales = ref([])
 
 // ============ 弹窗控制 ============
 const productDialogVisible = ref(false)
 const auctionDialogVisible = ref(false)
 const complaintDialogVisible = ref(false)
+const reviewDetailVisible = ref(false)
+const complaintDetailVisible = ref(false)
 const isEditProduct = ref(false)
 const editingProductId = ref(null)
+const selectedReview = ref(null)
+const selectedComplaint = ref(null)
 
 // ============ 表单 ============
 const productForm = reactive({
@@ -542,10 +708,7 @@ const averageRating = computed(() => {
 })
 
 const totalAuctionRevenue = computed(() => {
-  return auctions.value
-    .filter(a => a.status === 2 && a.currentPrice)
-    .reduce((sum, a) => sum + Number(a.currentPrice), 0)
-    .toFixed(2)
+  return Number(paidAuctionRevenue.value || 0).toFixed(2)
 })
 
 // ============ 菜单切换 ============
@@ -554,6 +717,7 @@ const handleMenuSelect = (index) => {
   if (index === 'products') loadProducts()
   else if (index === 'auctions') loadAuctions()
   else if (index === 'orders') loadOrders()
+  else if (index === 'after_sales') loadAfterSales()
   else if (index === 'reviews') loadReviews()
   else if (index === 'complaints') loadComplaints()
   else if (index === 'profile') loadProfile()
@@ -571,8 +735,8 @@ const handleUserCommand = (command) => {
 // ============ 商品管理 ============
 const loadProducts = async () => {
   try {
-    const res = await request.get('/product/recommend', { params: { userId: sellerId.value } })
-    products.value = res.data.records.filter(p => p.sellerId == sellerId.value)
+    const res = await request.get(`/product/seller/${sellerId.value}`)
+    products.value = res.data || []
   } catch (error) {
     ElMessage.error('加载商品失败')
   }
@@ -625,8 +789,14 @@ const editProduct = (product) => {
 
 const submitProduct = async () => {
   try {
+    const normalizeDateTime = (val) => {
+      if (!val) return null
+      return String(val).trim().replace(' ', 'T').replace(/\]$/, '')
+    }
+
     const productData = {
       ...productForm,
+      publishTime: productForm.status === 2 ? normalizeDateTime(productForm.publishTime) : null,
       images: JSON.stringify(productForm.imageList.filter(img => img.trim()))
     }
     if (isEditProduct.value) {
@@ -669,8 +839,43 @@ const deleteProduct = async (id) => {
 // ============ 拍卖管理 ============
 const loadAuctions = async () => {
   try {
-    const res = await request.get(`/auction/seller/${sellerId.value}`)
-    auctions.value = res.data
+    const [auctionRes, orderRes] = await Promise.all([
+      request.get(`/auction/seller/${sellerId.value}`),
+      request.get(`/order/seller/${sellerId.value}`)
+    ])
+    const sellerAuctions = auctionRes.data || []
+    const sellerOrders = orderRes.data || []
+    const winnerNameCache = new Map()
+
+    for (const auction of sellerAuctions) {
+      if (!auction.winnerId) continue
+      const key = String(auction.winnerId)
+      if (winnerNameCache.has(key)) {
+        auction.winnerName = winnerNameCache.get(key)
+      } else {
+        try {
+          const uRes = await request.get(`/user/${auction.winnerId}`)
+          const winnerName = uRes.data?.nickname || `用户#${auction.winnerId}`
+          winnerNameCache.set(key, winnerName)
+          auction.winnerName = winnerName
+        } catch (e) {
+          const fallback = `用户#${auction.winnerId}`
+          winnerNameCache.set(key, fallback)
+          auction.winnerName = fallback
+        }
+      }
+    }
+
+    // 仅统计拍卖中标订单，且用户已支付（状态不为待支付和已取消）
+    paidAuctionRevenue.value = sellerOrders
+      .filter(o => {
+        const shipping = String(o.shippingInfo || '')
+        const status = Number(o.status)
+        return shipping.startsWith('AUCTION_WIN:') && status !== 0 && status !== 4
+      })
+      .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)
+
+    auctions.value = sellerAuctions
   } catch (error) {
     ElMessage.error('加载拍卖活动失败')
   }
@@ -686,7 +891,15 @@ const showAddAuctionDialog = () => {
 
 const submitAuction = async () => {
   try {
-    await request.post('/auction', auctionForm)
+    const normalizeDateTime = (val) => {
+      if (!val) return null
+      return String(val).trim().replace(' ', 'T').replace(/\]$/, '')
+    }
+    await request.post('/auction', {
+      ...auctionForm,
+      startTime: normalizeDateTime(auctionForm.startTime),
+      endTime: normalizeDateTime(auctionForm.endTime)
+    })
     ElMessage.success('拍卖活动创建成功')
     auctionDialogVisible.value = false
     loadAuctions()
@@ -709,7 +922,11 @@ const endAuction = async (auction) => {
   try {
     await ElMessageBox.confirm('确定要结束该拍卖活动吗？', '提示', { type: 'warning' })
     await request.put(`/auction/${auction.id}`, { status: 2 })
-    ElMessage.success('拍卖已结束')
+    if (auction.winnerId) {
+      ElMessage.success('拍卖已结束，已为中标者生成待支付订单')
+    } else {
+      ElMessage.success('拍卖已结束（流拍，无中标者）')
+    }
     loadAuctions()
   } catch (error) {
     if (error !== 'cancel') ElMessage.error('操作失败')
@@ -765,11 +982,105 @@ const shipOrder = async (id) => {
   }
 }
 
+// ============ 售后管理 ============
+const loadAfterSales = async () => {
+  try {
+    const [orderRes, afterSaleRes] = await Promise.all([
+      request.get(`/order/seller/${sellerId.value}`),
+      request.get('/aftersale/list')
+    ])
+
+    const sellerOrderIds = new Set((orderRes.data || []).map(o => String(o.id)))
+    const list = (afterSaleRes.data || []).filter(a => sellerOrderIds.has(String(a.orderId)))
+
+    for (const a of list) {
+      try {
+        const uRes = await request.get(`/user/${a.buyerId}`)
+        if (uRes.data) a.buyerName = uRes.data.nickname
+      } catch (e) {}
+    }
+
+    afterSales.value = list
+  } catch {
+    afterSales.value = []
+  }
+}
+
+const parseImages = (images) => {
+  if (!images) return []
+  try {
+    const list = JSON.parse(images)
+    return Array.isArray(list) ? list : [images]
+  } catch (e) {
+    if (images.includes(',')) return images.split(',')
+    return [images]
+  }
+}
+
+const formatFullTime = (timeStr) => {
+  if (!timeStr) return '—'
+  const normalized = String(timeStr).replace('T', ' ').replace('Z', '')
+  return normalized.includes('.') ? normalized.split('.')[0] : normalized
+}
+
+const handleAfterSaleStatus = async (id, status) => {
+    try {
+        await request.put(`/aftersale/${id}`, { status: status })
+        ElMessage.success('操作成功')
+        loadAfterSales()
+    } catch {
+        ElMessage.error('操作失败')
+    }
+}
+
 // ============ 评价管理 ============
 const loadReviews = async () => {
   try {
     const res = await request.get(`/review/seller/${sellerId.value}`)
-    reviews.value = res.data
+    const list = res.data || []
+    const userNameCache = new Map()
+    const productCache = new Map()
+
+    for (const r of list) {
+      const buyerKey = String(r.buyerId)
+      if (userNameCache.has(buyerKey)) {
+        r.buyerName = userNameCache.get(buyerKey)
+      } else {
+        try {
+          const uRes = await request.get(`/user/${r.buyerId}`)
+          const buyerName = uRes.data?.nickname || `用户#${r.buyerId}`
+          userNameCache.set(buyerKey, buyerName)
+          r.buyerName = buyerName
+        } catch (e) {
+          const fallback = `用户#${r.buyerId}`
+          userNameCache.set(buyerKey, fallback)
+          r.buyerName = fallback
+        }
+      }
+
+      const productKey = String(r.productId)
+      if (productCache.has(productKey)) {
+        const product = productCache.get(productKey)
+        if (product) {
+          r.productName = product.name
+          r.productImage = getFirstImage(product.images)
+        }
+      } else {
+        try {
+          const pRes = await request.get(`/product/${r.productId}`)
+          const product = pRes.data || null
+          productCache.set(productKey, product)
+          if (product) {
+            r.productName = product.name
+            r.productImage = getFirstImage(product.images)
+          }
+        } catch (e) {
+          productCache.set(productKey, null)
+        }
+      }
+    }
+
+    reviews.value = list
   } catch (error) {
     ElMessage.error('加载评价失败')
   }
@@ -779,7 +1090,56 @@ const loadReviews = async () => {
 const loadComplaints = async () => {
   try {
     const res = await request.get('/complaint/list')
-    complaints.value = res.data.filter(c => c.targetId == sellerId.value && c.type === 1)
+    const all = res.data || []
+    const userNameCache = new Map()
+    const productCache = new Map()
+    const list = []
+
+    for (const c of all) {
+      if (Number(c.type) === 1) {
+        if (String(c.targetId) !== String(sellerId.value)) continue
+        c.targetDisplay = `卖家店铺#${c.targetId}`
+      } else if (Number(c.type) === 2) {
+        const productKey = String(c.targetId)
+        let product = null
+        if (productCache.has(productKey)) {
+          product = productCache.get(productKey)
+        } else {
+          try {
+            const pRes = await request.get(`/product/${c.targetId}`)
+            product = pRes.data || null
+          } catch (e) {
+            product = null
+          }
+          productCache.set(productKey, product)
+        }
+        if (!product || String(product.sellerId) !== String(sellerId.value)) continue
+        c.targetProductName = product.name || `商品#${c.targetId}`
+        c.targetProductImage = getFirstImage(product.images)
+      } else {
+        continue
+      }
+
+      const submitterKey = String(c.submitterId)
+      if (userNameCache.has(submitterKey)) {
+        c.submitterName = userNameCache.get(submitterKey)
+      } else {
+        try {
+          const uRes = await request.get(`/user/${c.submitterId}`)
+          const submitterName = uRes.data?.nickname || `用户#${c.submitterId}`
+          userNameCache.set(submitterKey, submitterName)
+          c.submitterName = submitterName
+        } catch (e) {
+          const fallback = `用户#${c.submitterId}`
+          userNameCache.set(submitterKey, fallback)
+          c.submitterName = fallback
+        }
+      }
+
+      list.push(c)
+    }
+
+    complaints.value = list
   } catch (error) {
     ElMessage.error('加载投诉失败')
   }
@@ -790,6 +1150,16 @@ const openComplaintDialog = (complaint) => {
   complaintHandleForm.reason = complaint.reason
   complaintHandleForm.result = ''
   complaintDialogVisible.value = true
+}
+
+const openReviewDetail = (review) => {
+  selectedReview.value = review
+  reviewDetailVisible.value = true
+}
+
+const openComplaintDetail = (complaint) => {
+  selectedComplaint.value = complaint
+  complaintDetailVisible.value = true
 }
 
 const submitComplaintHandle = async () => {

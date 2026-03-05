@@ -54,6 +54,17 @@ public class OrderController {
         return Result.success(orders);
     }
 
+    @GetMapping("/{id}")
+    public Result<Order> getById(@PathVariable Long id) {
+        Order order = orderService.getById(id);
+        if (order != null) {
+            LambdaQueryWrapper<OrderItem> itemWrapper = new LambdaQueryWrapper<>();
+            itemWrapper.eq(OrderItem::getOrderId, order.getId());
+            order.setItems(orderItemService.list(itemWrapper));
+        }
+        return Result.success(order);
+    }
+
     @GetMapping("/list")
     public Result<List<Order>> list() {
         return Result.success(orderService.list());

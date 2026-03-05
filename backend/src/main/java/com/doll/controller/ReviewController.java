@@ -1,6 +1,5 @@
 package com.doll.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.doll.common.Result;
 import com.doll.entity.Review;
 import com.doll.service.ReviewService;
@@ -24,15 +23,11 @@ public class ReviewController {
 
     @GetMapping("/product/{productId}")
     public Result<List<Review>> getByProduct(@PathVariable Long productId) {
-        LambdaQueryWrapper<Review> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Review::getProductId, productId);
-        return Result.success(reviewService.list(wrapper));
+        return Result.success(reviewService.getByProductId(productId));
     }
 
     @GetMapping("/seller/{sellerId}")
     public Result<List<Review>> getBySeller(@PathVariable Long sellerId) {
-        LambdaQueryWrapper<Review> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Review::getSellerId, sellerId);
-        return Result.success(reviewService.list(wrapper));
+        return Result.success(reviewService.getBySellerId(sellerId));
     }
 }

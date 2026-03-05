@@ -195,10 +195,10 @@
                     <el-button v-if="scope.row.status === 2" size="small" type="success" plain @click="confirmReceive(scope.row.id)">
                       <el-icon><Check /></el-icon> 确认收货
                     </el-button>
-                    <el-button v-if="scope.row.status === 3" size="small" type="primary" plain @click="openReviewDialog(scope.row)">
+                    <el-button v-if="scope.row.status === 3" size="small" type="primary" class="custom-btn review-btn" @click="openReviewDialog(scope.row)">
                       <el-icon><ChatLineSquare /></el-icon> 发表评价
                     </el-button>
-                    <el-button v-if="scope.row.status >= 2" size="small" type="warning" plain @click="openAfterSaleDialog(scope.row)">
+                    <el-button v-if="scope.row.status >= 2" size="small" type="warning" plain class="custom-btn aftersale-btn" @click="openAfterSaleDialog(scope.row)">
                       <el-icon><RefreshRight /></el-icon> 申请售后
                     </el-button>
                   </div>
@@ -209,6 +209,15 @@
           <div class="section-header" style="margin-top:32px"><h3>🔄 售后记录</h3></div>
           <el-table :data="afterSales" class="custom-table" stripe>
             <el-table-column prop="orderId" label="订单ID" width="90" />
+            <el-table-column label="商品信息" min-width="250">
+              <template #default="scope">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <el-image v-if="scope.row.productImage" :src="scope.row.productImage" style="width: 50px; height: 50px; border-radius: 6px;" fit="cover" />
+                  <div v-else style="width: 50px; height: 50px; border-radius: 6px; background: #f0f0f0; display:flex; align-items:center; justify-content:center; font-size:20px">🧸</div>
+                  <span style="font-weight: 600; color: #2d2520;">{{ scope.row.productName || '商品信息' }}</span>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="reason" label="申请原因" min-width="160" show-overflow-tooltip />
             <el-table-column label="状态" width="100">
               <template #default="scope">
@@ -250,6 +259,14 @@
                         <span class="val">¥{{ auc.currentPrice }}</span>
                     </div>
                 </div>
+                <div v-if="auc.status === 2" style="margin-top: 8px; font-size: 12px;">
+                  <span v-if="auc.winnerId && String(auc.winnerId) === String(userId)" style="color:#67c23a; font-weight: 600;">
+                    你已中标，请到订单管理完成支付
+                  </span>
+                  <span v-else-if="auc.winnerName" style="color:#909399;">中标者：{{ auc.winnerName }}</span>
+                  <span v-else-if="auc.winnerId" style="color:#909399;">中标者：用户#{{ auc.winnerId }}</span>
+                  <span v-else style="color:#f56c6c;">本场流拍</span>
+                </div>
                 <div class="product-footer" style="margin-top: 12px;">
                   <div class="time-left" style="font-size: 11px; color: #a09088;">
                     截止: {{ formatFullTime(auc.endTime) }}
@@ -266,85 +283,36 @@
 
         <!-- ==================== 互动社区 ==================== -->
         <div v-if="activeMenu === 'community'" class="page-section">
-          <div class="community-container">
-            <!-- 左侧导航 -->
-            <div class="community-left">
-              <div class="community-nav-card">
-                <div class="nav-menu">
-                  <div class="nav-item" :class="{active: communityCategory === 'all'}" @click="communityCategory = 'all'"><el-icon><HomeFilled /></el-icon> 社区广场</div>
-                  <div class="nav-item" :class="{active: communityCategory === 'featured'}" @click="communityCategory = 'featured'"><el-icon><Star /></el-icon> 精选内容</div>
-                  <div class="nav-item" :class="{active: communityCategory === 'hot'}" @click="communityCategory = 'hot'"><el-icon><ChatDotRound /></el-icon> 热门讨论</div>
-                </div>
-                <div class="nav-group-title">兴趣圈子</div>
-                <div class="nav-menu">
-                  <div class="nav-item group-item" :class="{active: communityCategory === 'daily'}" @click="communityCategory = 'daily'">🧸 玩偶日常</div>
-                  <div class="nav-item group-item" :class="{active: communityCategory === 'diy'}" @click="communityCategory = 'diy'">🎨 涂装DIY</div>
-                  <div class="nav-item group-item" :class="{active: communityCategory === 'trade'}" @click="communityCategory = 'trade'">📢 交易求购</div>
-                </div>
+          <div class="simple-community">
+            <div class="community-header">
+              <div class="header-left">
+                <h3>🧸 玩偶动态</h3>
+                <p>分享你的收藏，结交同好</p>
               </div>
+              <el-button type="primary" class="publish-btn" @click="showPostDialog = true">
+                <el-icon><EditPen /></el-icon> 发布动态
+              </el-button>
             </div>
-
-            <!-- 中间帖子列表 -->
-            <div class="community-main">
-              <div class="posts-list">
-                <div v-for="post in posts" :key="post.id" class="post-card" @click="openPostDetail(post)">
-                  <div class="post-header">
-                    <el-avatar :size="40">{{ post.userId }}</el-avatar>
-                    <div class="post-meta">
-                      <span class="post-user">玩偶收藏家 #{{ post.userId }}</span>
-                      <span class="post-time">{{ formatFullTime(post.createTime) }}</span>
-                    </div>
-                  </div>
-                  <h4 class="post-title">{{ post.title }}</h4>
-                  <p class="post-content post-preview">{{ post.content }}</p>
-                  <div v-if="getImageList(post.images).length" class="post-images">
-                    <el-image v-for="(img, i) in getImageList(post.images)" :key="i" :src="img" fit="cover" class="post-img" @click.stop />
-                  </div>
-                  <div class="post-footer-actions">
-                    <span class="action-item"><el-icon><ChatLineRound /></el-icon> 评论</span>
-                    <span class="action-item"><el-icon><Star /></el-icon> 收藏</span>
+            
+            <div class="posts-feed">
+              <div v-for="post in posts" :key="post.id" class="simple-post-card" @click="openPostDetail(post)">
+                <div class="post-user-info">
+                  <el-avatar :size="32">{{ post.userId }}</el-avatar>
+                  <div class="user-meta">
+                    <span class="user-id">收藏家#{{ post.userId }}</span>
+                    <span class="post-date">{{ formatFullTime(post.createTime) }}</span>
                   </div>
                 </div>
-                <el-empty v-if="posts.length === 0" description="暂无帖子，来发表第一个吧~" />
-              </div>
-            </div>
-
-            <!-- 右侧推荐面板 -->
-            <div class="community-right">
-              <div class="side-card publish-card">
-                <el-button type="primary" class="action-btn publish-btn-large" @click="showPostDialog = true">
-                  <el-icon><EditPen /></el-icon> 发布我的玩偶动态
-                </el-button>
-              </div>
-              <div class="side-card">
-                <div class="side-card-header">社区达人</div>
-                <div class="talent-list">
-                  <div class="talent-item">
-                    <el-avatar :size="36" style="background:#fce38a">王</el-avatar>
-                    <div class="talent-info">
-                      <div class="talent-name">收藏达人小王</div>
-                      <div class="talent-desc">发布了 128 个帖子</div>
-                    </div>
-                    <el-button size="small" round plain>关注</el-button>
-                  </div>
-                  <div class="talent-item">
-                    <el-avatar :size="36" style="background:#f38181">李</el-avatar>
-                    <div class="talent-info">
-                      <div class="talent-name">玩偶收藏家小李</div>
-                      <div class="talent-desc">发布了 96 个帖子</div>
-                    </div>
-                    <el-button size="small" round plain>关注</el-button>
-                  </div>
+                <h4 class="post-title">{{ post.title }}</h4>
+                <p class="post-text">{{ post.content }}</p>
+                <div v-if="getImageList(post.images).length" class="post-media">
+                  <el-image v-for="(img, i) in getImageList(post.images)" :key="i" :src="img" fit="cover" class="feed-img" lazy />
+                </div>
+                <div class="post-actions">
+                  <span class="action"><el-icon><ChatLineRound /></el-icon> 评论</span>
                 </div>
               </div>
-              <div class="side-card">
-                <div class="side-card-header">社区规则</div>
-                <ul class="rule-list">
-                  <li><el-icon color="#67c23a"><CircleCheckFilled /></el-icon> 禁止发布与玩偶无关的内容</li>
-                  <li><el-icon color="#67c23a"><CircleCheckFilled /></el-icon> 禁止发表不友善言论</li>
-                </ul>
-                <div class="rule-more">查看完整规范</div>
-              </div>
+              <el-empty v-if="posts.length === 0" description="社区空空如也，快来分享吧" />
             </div>
           </div>
         </div>
@@ -357,14 +325,38 @@
           </div>
           <el-table :data="myComplaints" class="custom-table" stripe>
             <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="targetId" label="被投诉方ID" width="100" />
+            <el-table-column label="投诉对象" min-width="250">
+              <template #default="scope">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <el-image v-if="scope.row.type === 2 && scope.row.productImage" :src="scope.row.productImage" style="width: 50px; height: 50px; border-radius: 6px;" fit="cover" />
+                  <div v-else-if="scope.row.type === 2" style="width: 50px; height: 50px; border-radius: 6px; background: #f0f0f0; display:flex; align-items:center; justify-content:center; font-size:20px">🧸</div>
+                  <div style="font-weight: 600; color: #2d2520;">{{ scope.row.targetName || 'ID:'+scope.row.targetId }}</div>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column label="类型" width="80">
               <template #default="scope">
                 <el-tag v-if="scope.row.type === 1" effect="light" size="small">卖家</el-tag>
                 <el-tag v-else type="warning" effect="light" size="small">商品</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="reason" label="投诉原因" min-width="200" show-overflow-tooltip />
+            <el-table-column label="内容于证据" min-width="200">
+              <template #default="scope">
+                <div class="complaint-content-cell">
+                  <div class="reason-text">{{ scope.row.reason }}</div>
+                  <div class="complaint-images" v-if="scope.row.images">
+                    <el-image 
+                      v-for="(img, idx) in parseImages(scope.row.images)" 
+                      :key="idx" 
+                      :src="img" 
+                      class="mini-complaint-img" 
+                      :preview-src-list="parseImages(scope.row.images)"
+                      :initial-index="idx"
+                    />
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column label="处理进度" width="100">
               <template #default="scope">
                 <el-tag v-if="scope.row.status === 0" type="danger" effect="light" round size="small">待处理</el-tag>
@@ -375,7 +367,9 @@
             <el-table-column label="反馈信息" min-width="160" show-overflow-tooltip>
               <template #default="scope">{{ scope.row.result || '暂无反馈' }}</template>
             </el-table-column>
-            <el-table-column prop="createTime" label="提交时间" width="160" />
+            <el-table-column label="提交时间" width="160">
+              <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
+            </el-table-column>
           </el-table>
         </div>
 
@@ -626,6 +620,23 @@
           <div style="font-size: 12px; color: #999; margin-top: 4px;">ID: {{ complaintForm.targetId }}</div>
         </el-form-item>
         <el-form-item label="投诉原因"><el-input v-model="complaintForm.reason" type="textarea" :rows="3" placeholder="请详细描述投诉原因" /></el-form-item>
+        <el-form-item label="凭证图片">
+          <el-upload
+            action="/api/upload"
+            :headers="uploadHeaders"
+            list-type="picture-card"
+            multiple
+            :limit="5"
+            :file-list="complaintFileList"
+            :on-success="handleComplaintImageSuccess"
+            :on-remove="handleComplaintImageRemove"
+          >
+            <el-icon><Plus /></el-icon>
+            <template #tip>
+              <div style="font-size: 12px; color: #999; margin-top: 8px;">最多上传5张图片，建议尺寸 800x800</div>
+            </template>
+          </el-upload>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showComplaintDialog = false">取消</el-button>
@@ -678,19 +689,52 @@
     </el-dialog>
 
     <!-- ==================== 帖子详情弹窗 ==================== -->
-    <el-dialog v-model="postDetailVisible" width="600px" class="custom-dialog">
+    <el-dialog v-model="postDetailVisible" width="700px" class="custom-dialog post-detail-dialog">
       <div v-if="selectedPost" class="post-detail-content">
-        <div class="post-header" style="margin-bottom: 20px;">
+        <div class="post-header" style="margin-bottom: 20px; display: flex; align-items: center; gap: 16px;">
           <el-avatar :size="48">{{ selectedPost.userId }}</el-avatar>
-          <div class="post-meta">
-            <span class="post-user" style="font-size:16px;">用户 #{{ selectedPost.userId }}</span>
-            <span class="post-time">{{ selectedPost.createTime }}</span>
+          <div class="post-meta" style="flex: 1;">
+            <div class="post-user" style="font-size:16px; font-weight: 600; color: #2d2520;">用户 #{{ selectedPost.userId }}</div>
+            <div class="post-time" style="font-size: 13px; color: #a09088;">{{ formatFullTime(selectedPost.createTime) }}</div>
           </div>
         </div>
         <h2 style="margin: 0 0 16px; color:#2d2520;">{{ selectedPost.title }}</h2>
         <p style="white-space: pre-wrap; line-height: 1.8; color:#5a4a42; font-size:15px; margin-bottom: 24px;">{{ selectedPost.content }}</p>
-        <div v-if="getImageList(selectedPost.images).length" style="display:flex; flex-direction:column; gap:16px;">
+        <div v-if="getImageList(selectedPost.images).length" style="display:flex; flex-direction:column; gap:16px; margin-bottom: 32px;">
           <el-image v-for="(img, i) in getImageList(selectedPost.images)" :key="i" :src="img" style="width:100%; border-radius:12px;" :preview-src-list="getImageList(selectedPost.images)" />
+        </div>
+        
+        <!-- 评论区 -->
+        <el-divider />
+        <div class="comments-section">
+          <h4 style="margin: 0 0 16px; color: #2d2520;">💬 评论 ({{ postComments.length }})</h4>
+          
+          <!-- 发表评论 -->
+          <div class="comment-input-box" style="margin-bottom: 24px;">
+            <el-input 
+              v-model="newComment" 
+              type="textarea" 
+              :rows="3" 
+              placeholder="说说你的看法..." 
+              style="margin-bottom: 12px;"
+            />
+            <el-button type="primary" @click="submitPostComment" :disabled="!newComment.trim()">发表评论</el-button>
+          </div>
+          
+          <!-- 评论列表 -->
+          <div class="comments-list">
+            <div v-for="comment in postComments" :key="comment.id" class="comment-item" style="padding: 16px 0; border-bottom: 1px dashed #f0ebe8;">
+              <div style="display: flex; gap: 12px;">
+                <el-avatar :size="36">{{ comment.userId }}</el-avatar>
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; color: #2d2520; margin-bottom: 4px;">用户 #{{ comment.userId }}</div>
+                  <div style="color: #5a4a42; line-height: 1.6; margin-bottom: 8px;">{{ comment.content }}</div>
+                  <div style="font-size: 12px; color: #a09088;">{{ formatFullTime(comment.createTime) }}</div>
+                </div>
+              </div>
+            </div>
+            <el-empty v-if="postComments.length === 0" description="暂无评论，快来抢沙发吧~" :image-size="80" />
+          </div>
         </div>
       </div>
     </el-dialog>
@@ -785,11 +829,12 @@ const directBuyProduct = ref(null)
 const reviewForm = reactive({ orderId: null, productId: null, buyerId: userId.value, sellerId: null, rating: 5, content: '' })
 const afterSaleForm = reactive({ orderId: null, buyerId: userId.value, reason: '', description: '' })
 const postForm = reactive({ title: '', content: '', imageUrl: '' })
-const complaintForm = reactive({ targetId: '', targetName: '', type: 1, reason: '', submitterId: userId.value })
+const complaintForm = reactive({ targetId: '', targetName: '', type: 1, reason: '', submitterId: userId.value, images: '' })
 const profileForm = reactive({ nickname: '', phone: '', avatar: '' })
 const addressForm = reactive({ receiver: '', phone: '', address: '' })
 const defaultAddress = reactive({ receiver: '', phone: '', province: '', city: '', district: '', detail: '', address: '', isDefault: true })
 const postFileList = ref([])
+const complaintFileList = ref([])
 const provinces = ['北京市', '天津市', '河北省', '山西省', '内蒙古自治区', '辽宁省', '吉林省', '黑龙江省', '上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省', '重庆市', '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区', '台湾省']
 
 const uploadHeaders = computed(() => ({ Authorization: 'Bearer ' + localStorage.getItem('token') }))
@@ -813,6 +858,25 @@ const handlePostImageSuccess = (res, file, fileList) => {
 
 const handlePostImageRemove = (file, fileList) => {
   postForm.imageUrl = ''
+}
+
+const handleComplaintImageSuccess = (res, file, fileList) => {
+  if (res.code === 200) {
+    updateComplaintImages(fileList)
+  } else {
+    ElMessage.error(res.message || '上传失败')
+  }
+}
+
+const handleComplaintImageRemove = (file, fileList) => {
+  updateComplaintImages(fileList)
+}
+
+const updateComplaintImages = (fileList) => {
+  const images = fileList
+    .filter(f => f.response && f.response.code === 200)
+    .map(f => f.response.data)
+  complaintForm.images = JSON.stringify(images)
 }
 
 // ============ 计算属性 ============
@@ -869,6 +933,7 @@ const loadAuctions = async () => {
     try {
         const res = await request.get('/auction/list')
         const list = res.data || []
+        const winnerNameCache = new Map()
         // 补全商品基本信息用于展示
         for(let a of list) {
             try {
@@ -878,6 +943,24 @@ const loadAuctions = async () => {
                     a.productImage = getFirstImage(pRes.data.images)
                 }
             } catch(e){}
+
+            if (a.winnerId) {
+              const key = String(a.winnerId)
+              if (winnerNameCache.has(key)) {
+                a.winnerName = winnerNameCache.get(key)
+              } else {
+                try {
+                  const uRes = await request.get(`/user/${a.winnerId}`)
+                  const winnerName = uRes.data?.nickname || `用户#${a.winnerId}`
+                  winnerNameCache.set(key, winnerName)
+                  a.winnerName = winnerName
+                } catch (e) {
+                  const fallback = `用户#${a.winnerId}`
+                  winnerNameCache.set(key, fallback)
+                  a.winnerName = fallback
+                }
+              }
+            }
         }
         auctions.value = list
     } catch {
@@ -932,15 +1015,11 @@ const searchProducts = async () => {
     products.value = res.data.records || []
   } catch { ElMessage.error('搜索失败') }
 }
-const openProductDetail = (p) => { selectedProduct.value = p; productDetailVisible.value = true }
+const openProductDetail = (p) => { 
+  router.push(`/product/${p.id}`) 
+}
 const openProductDetailById = async (pid) => {
-  try {
-    const res = await request.get(`/product/${pid}`)
-    if(res.data) {
-      selectedProduct.value = res.data
-      productDetailVisible.value = true
-    }
-  } catch {}
+  router.push(`/product/${pid}`)
 }
 const addToCart = async (productId) => {
   try {
@@ -969,16 +1048,14 @@ const loadFavorites = async () => {
   }
 }
 
+
+
 const toggleFavorite = async (productId) => {
   try {
-    if (isProductFavorited(productId)) {
-      await request.delete(`/favorite/${userId.value}/${productId}`)
-      ElMessage.success('已取消收藏')
-    } else {
-      await request.post('/favorite', { userId: userId.value, productId: productId })
-      ElMessage.success('收藏成功')
-    }
-    loadFavorites() // Refresh favorites list
+    await request.post('/favorite', { userId: userId.value, productId: productId })
+    const isNowFavorited = !isProductFavorited(productId)
+    ElMessage.success(isNowFavorited ? '收藏成功' : '已取消收藏')
+    loadFavorites() // 刷新收藏列表
   } catch (err) {
     ElMessage.error('操作失败')
   }
@@ -1210,7 +1287,41 @@ const submitReview = async () => {
 const loadAfterSales = async () => {
   try {
     const res = await request.get(`/aftersale/buyer/${userId.value}`)
-    afterSales.value = res.data
+    const list = res.data || []
+    // 使用买家订单列表进行关联，避免调用可能不存在的 /order/{id} 接口导致 404
+    let orderList = myOrders.value || []
+    if (!orderList.length) {
+      try {
+        const ordersRes = await request.get(`/order/buyer/${userId.value}`)
+        orderList = ordersRes.data || []
+      } catch (e) {
+        orderList = []
+      }
+    }
+    const orderMap = new Map(orderList.map(o => [String(o.id), o]))
+
+    for (const as of list) {
+      const order = orderMap.get(String(as.orderId))
+      if (!order) continue
+
+      as.orderInfo = order
+      if (order.items && order.items.length > 0) {
+        const firstItem = order.items[0]
+        as.productName = firstItem.productName
+        as.productImage = firstItem.productImage
+
+        if ((!as.productName || !as.productImage) && firstItem.productId) {
+          try {
+            const pRes = await request.get(`/product/${firstItem.productId}`)
+            if (pRes.data) {
+              if (!as.productName) as.productName = pRes.data.name
+              if (!as.productImage) as.productImage = getFirstImage(pRes.data.images)
+            }
+          } catch (e) {}
+        }
+      }
+    }
+    afterSales.value = list
   } catch { afterSales.value = [] }
 }
 const openAfterSaleDialog = (order) => {
@@ -1230,12 +1341,118 @@ const submitAfterSale = async () => {
 }
 
 // ============ 互动社区 ============
+const postComments = ref([])
+const newComment = ref('')
+const favoritedPostIds = ref([])
+// 使用Map存储每个帖子的评论，key是postId，value是评论数组
+const postCommentsMap = ref(new Map())
+const postCommentsStorageKey = computed(() => `doll_post_comments_${userId.value || 'guest'}`)
+
+const normalizePostId = (postId) => String(postId)
+
+const loadPersistedPostComments = () => {
+  try {
+    const raw = localStorage.getItem(postCommentsStorageKey.value)
+    if (!raw) {
+      postCommentsMap.value = new Map()
+      return
+    }
+    const parsed = JSON.parse(raw)
+    const entries = Object.entries(parsed).map(([key, value]) => [String(key), Array.isArray(value) ? value : []])
+    postCommentsMap.value = new Map(entries)
+  } catch (e) {
+    postCommentsMap.value = new Map()
+  }
+}
+
+const persistPostComments = () => {
+  const obj = {}
+  for (const [key, value] of postCommentsMap.value.entries()) {
+    obj[String(key)] = Array.isArray(value) ? value : []
+  }
+  localStorage.setItem(postCommentsStorageKey.value, JSON.stringify(obj))
+}
+
 const loadPosts = async () => {
   try {
     const res = await request.get('/post/list')
     posts.value = res.data
   } catch { ElMessage.error('加载帖子失败') }
 }
+
+const openPostDetail = async (post) => {
+  selectedPost.value = post
+  postDetailVisible.value = true
+  // 从Map中加载该帖子的评论
+  const postKey = normalizePostId(post.id)
+  if (postCommentsMap.value.has(postKey)) {
+    postComments.value = postCommentsMap.value.get(postKey)
+  } else {
+    postComments.value = []
+  }
+  newComment.value = ''
+}
+
+const isPostFavorited = (postId) => {
+  return favoritedPostIds.value.includes(postId)
+}
+
+const togglePostFavorite = async (postId) => {
+  if (!userId.value) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  try {
+    // 这里使用favorite接口，type可以扩展支持帖子收藏
+    // 暂时使用简单的本地状态管理
+    const index = favoritedPostIds.value.indexOf(postId)
+    if (index > -1) {
+      favoritedPostIds.value.splice(index, 1)
+      ElMessage.success('已取消收藏')
+    } else {
+      favoritedPostIds.value.push(postId)
+      ElMessage.success('收藏成功')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
+const submitPostComment = async () => {
+  if (!newComment.value.trim()) {
+    ElMessage.warning('请输入评论内容')
+    return
+  }
+  if (!selectedPost.value) {
+    ElMessage.error('帖子信息丢失')
+    return
+  }
+  try {
+    // 创建评论对象
+    const comment = {
+      id: Date.now(),
+      userId: userId.value,
+      content: newComment.value,
+      createTime: new Date().toISOString()
+    }
+
+    // 保存到Map中并持久化，避免重新进入帖子后评论丢失
+    const postKey = normalizePostId(selectedPost.value.id)
+    if (!postCommentsMap.value.has(postKey)) {
+      postCommentsMap.value.set(postKey, [])
+    }
+    const list = postCommentsMap.value.get(postKey)
+    list.unshift(comment)
+    postComments.value = list
+    persistPostComments()
+
+    newComment.value = ''
+    ElMessage.success('评论成功')
+  } catch (error) {
+    ElMessage.error('评论失败')
+  }
+}
+
 const submitPost = async () => {
   try {
     const data = {
@@ -1256,7 +1473,20 @@ const submitPost = async () => {
 const loadMyComplaints = async () => {
   try {
     const res = await request.get(`/complaint/user/${userId.value}`)
-    myComplaints.value = res.data
+    const list = res.data || []
+    for(let c of list) {
+      if(c.type === 1) { // 卖家
+        const sRes = await request.get(`/user/${c.targetId}`)
+        if(sRes.data) c.targetName = sRes.data.shopName || sRes.data.nickname
+      } else { // 商品
+        const pRes = await request.get(`/product/${c.targetId}`)
+        if(pRes.data) {
+          c.targetName = pRes.data.name
+          c.productImage = getFirstImage(pRes.data.images) // 添加商品图片
+        }
+      }
+    }
+    myComplaints.value = list
   } catch { myComplaints.value = [] }
 }
 const submitComplaint = async () => {
@@ -1264,7 +1494,8 @@ const submitComplaint = async () => {
     await request.post('/complaint', complaintForm)
     ElMessage.success('投诉已提交')
     showComplaintDialog.value = false
-    Object.assign(complaintForm, { targetId: '', targetName: '', type: 2, reason: '' })
+    Object.assign(complaintForm, { targetId: '', targetName: '', type: 2, reason: '', images: '' })
+    complaintFileList.value = []
     loadMyComplaints()
   } catch { ElMessage.error('提交失败') }
 }
@@ -1320,6 +1551,7 @@ const handleLogout = () => {
 }
 
 onMounted(() => { 
+  loadPersistedPostComments()
   searchProducts() 
   loadDefaultAddress()
   loadFavorites()
@@ -1397,6 +1629,36 @@ onMounted(() => {
 .checkout-btn { background: linear-gradient(135deg, #fce38a, #f38181); border: none; font-weight: 600; padding: 0 32px; height: 44px; color: white; box-shadow: 0 4px 12px rgba(243, 129, 129, 0.2); }
 .checkout-btn:hover { box-shadow: 0 6px 16px rgba(243, 129, 129, 0.3); transform: translateY(-1px); }
 
+/* ====== Custom Premium Buttons ====== */
+.custom-btn {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none !important;
+}
+
+.review-btn {
+  background: linear-gradient(135deg, #ff8a5c 0%, #f5576c 100%) !important;
+  color: white !important;
+}
+
+.aftersale-btn {
+  background: linear-gradient(135deg, #fce38a 0%, #f38181 100%) !important;
+  color: white !important;
+}
+
+.custom-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  opacity: 0.9;
+}
+
+.order-action-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* ====== Checkout Dialog ====== */
 .checkout-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
 .checkout-item { display: flex; gap: 16px; background: #faf8f6; padding: 12px; border-radius: 8px; align-items: center; border: 1px solid #f0ebe8; }
@@ -1407,57 +1669,27 @@ onMounted(() => {
 .item-price { font-size: 13px; color: #7a6b62; }
 .checkout-summary { text-align: right; padding-top: 16px; align-items: baseline; }
 
-/* ====== Posts & Community ====== */
-.community-container { display: flex; gap: 32px; width: 100%; margin: 0 auto; align-items: flex-start; }
-.community-left { width: 200px; flex-shrink: 0; position: sticky; top: 90px; }
-.community-main { flex: 1; min-width: 0; }
-.community-right { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 90px; }
+/* ====== Simple Community ====== */
+.simple-community { max-width: 800px; margin: 0 auto; }
+.community-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f0ebe8; }
+.community-header h3 { margin: 0 0 4px; color: #2d2520; }
+.community-header p { margin: 0; color: #a09088; font-size: 14px; }
+.publish-btn { border-radius: 12px; font-weight: bold; background: linear-gradient(135deg, #f5576c, #ff8a5c); border: none; }
 
-.publish-card { padding: 12px; background: transparent; border: none; box-shadow: none; }
-.publish-btn-large { width: 100%; height: 50px; border-radius: 12px; font-size: 16px; font-weight: bold; }
-
-.community-nav-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid #f0ebe8; }
-.publish-btn { width: 100%; border-radius: 20px; font-weight: bold; margin-bottom: 20px; }
-.nav-menu { display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; }
-.nav-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 8px; cursor: pointer; color: #5a4a42; font-size: 14px; transition: all 0.3s; }
-.nav-item:hover { background: #fdf6f5; color: #f5576c; }
-.nav-item.active { background: #fff0f2; color: #f5576c; font-weight: bold; border-left: 3px solid #f5576c; border-radius: 0 8px 8px 0; }
-.nav-group-title { font-size: 13px; font-weight: bold; color: #2d2520; margin: 10px 0 10px 10px; }
-.group-item { font-size: 13px; justify-content: space-between; }
-.tag { font-size: 10px; padding: 2px 6px; border-radius: 10px; }
-.tag-green { background: #e1f3d8; color: #67c23a; }
-.tag-orange { background: #faecd8; color: #e6a23c; }
-
-.side-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid #f0ebe8; }
-.side-card-header { font-size: 15px; font-weight: bold; color: #2d2520; margin-bottom: 16px; }
-.talent-list { display: flex; flex-direction: column; gap: 16px; }
-.talent-item { display: flex; align-items: center; gap: 12px; }
-.talent-info { flex: 1; overflow: hidden; }
-.talent-name { font-size: 13px; font-weight: 600; color: #2d2520; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.talent-desc { font-size: 11px; color: #a09088; margin-top: 4px; }
-.rule-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
-.rule-list li { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #5a4a42; line-height: 1.5; }
-.rule-more { font-size: 12px; color: #f5576c; margin-top: 16px; cursor: pointer; }
-
-.posts-list { display: flex; flex-direction: column; gap: 16px; width: 100%; }
-.post-card {
-  background: white; border-radius: 14px; padding: 20px 24px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid #f0ebe8;
-  cursor: pointer; transition: all 0.3s;
-}
-.post-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-.post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.post-meta { display: flex; flex-direction: column; }
-.post-user { font-size: 14px; font-weight: 600; color: #2d2520; }
-.post-time { font-size: 12px; color: #a09088; }
-.post-title { margin: 0 0 8px; font-size: 16px; color: #2d2520; font-weight: bold; }
-.post-preview { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; align-items: flex-start; }
-.post-content { margin: 0 0 12px; font-size: 14px; color: #5a4a42; line-height: 1.6; }
-.post-images { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.post-img { width: 120px; height: 120px; border-radius: 8px; }
-.post-footer-actions { display: flex; gap: 20px; margin-top: 10px; border-top: 1px solid #f9f5f2; padding-top: 12px; }
-.action-item { font-size: 13px; color: #9a8a82; display: flex; align-items: center; gap: 4px; transition: color 0.3s; }
-.action-item:hover { color: #f5576c; }
+.posts-feed { display: flex; flex-direction: column; gap: 20px; }
+.simple-post-card { background: white; border-radius: 16px; padding: 24px; border: 1px solid #f0ebe8; cursor: pointer; transition: all 0.3s; }
+.simple-post-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+.post-user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.user-meta { display: flex; flex-direction: column; }
+.user-id { font-size: 14px; font-weight: 600; color: #2d2520; }
+.post-date { font-size: 12px; color: #b5a89f; }
+.post-title { margin: 0 0 12px; font-size: 18px; color: #2d2520; }
+.post-text { margin: 0 0 16px; font-size: 14px; color: #5a4a42; line-height: 1.6; }
+.post-media { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.feed-img { width: 140px; height: 140px; border-radius: 8px; object-fit: cover; }
+.post-actions { display: flex; gap: 24px; padding-top: 16px; border-top: 1px dashed #f0ebe8; }
+.post-actions .action { font-size: 13px; color: #a09088; display: flex; align-items: center; gap: 6px; }
+.post-actions .action:hover { color: #f5576c; }
 
 /* ====== Post Detail Dialog ====== */
 .post-detail-content { padding: 10px; }
@@ -1545,9 +1777,14 @@ onMounted(() => {
 .add-cart-btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(245, 87, 108, 0.3); }
 
 /* ====== Order Actions ====== */
-.order-action-group { display: flex; gap: 10px; justify-content: flex-end; }
-.order-action-group .el-button { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.order-action-group .el-button:hover { transform: scale(1.1); }
+.order-action-group { display: flex; gap: 8px; justify-content: flex-end; }
+.review-btn, .aftersale-btn { border-radius: 8px; font-weight: bold; transition: all 0.3s; }
+.review-btn { background: linear-gradient(135deg, #f5576c, #ff8a5c); border: none; }
+.review-btn:hover { box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3); transform: scale(1.05); }
+.aftersale-btn:hover { background: #fdf6f5; color: #f5576c; transform: scale(1.05); }
+
+.complaint-images { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.mini-complaint-img { width: 50px; height: 50px; border-radius: 4px; border: 1px solid #f0ebe8; cursor: pointer; }
 
 /* ====== Profile Layout Update ====== */
 .profile-sidebar-nav { width: 220px; flex-shrink: 0; background: white; border-radius: 16px; padding: 24px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border: 1px solid #f0ebe8; align-self: flex-start; }

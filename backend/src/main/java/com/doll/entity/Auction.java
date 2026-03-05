@@ -18,13 +18,13 @@ public class Auction {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Integer status;
-
+    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
-
+    
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-
+    
     @TableLogic
     private Integer isDeleted;
 }

@@ -284,14 +284,13 @@
             </el-table-column>
             <el-table-column label="商品预览" min-width="200">
                <template #default="scope">
-                  <div class="order-product-item" v-if="scope.row.items && scope.row.items.length > 0">
-                      <el-image :src="scope.row.items[0].productImage || getFirstImage(scope.row.product?.images)" class="order-product-img" />
+                  <div class="order-product-item" v-if="scope.row.product">
+                      <el-image :src="getFirstImage(scope.row.product.images)" class="order-product-img" />
                       <div class="order-product-info">
-                          <div class="name">{{ scope.row.items[0].productName || scope.row.product?.name || ('商品#'+scope.row.items[0].productId) }}</div>
-                          <div class="count">x{{ scope.row.items[0].quantity }}</div>
+                          <div class="name">{{ scope.row.product.name }}</div>
                       </div>
                   </div>
-                  <span v-else style="color:#a09088;font-size:12px">无商品明细</span>
+                  <span v-else style="color:#a09088;font-size:12px">多商品或ID:{{scope.row.items?.[0]?.productId}}</span>
                </template>
             </el-table-column>
             <el-table-column label="金额" width="100">
@@ -309,13 +308,10 @@
             <el-table-column label="下单时间" width="160">
                 <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="240" fixed="right">
+            <el-table-column label="操作" width="180" fixed="right">
               <template #default="scope">
-                <el-button size="small" type="info" plain @click="openOrderDetail(scope.row)">
-                  <el-icon><View /></el-icon> 详情
-                </el-button>
-                <el-button v-if="scope.row.status === 1" size="small" type="primary" plain @click="shipOrder(scope.row.id)">
-                  <el-icon><Promotion /></el-icon> 发货
+                <el-button v-if="scope.row.status <= 2" size="small" type="warning" plain @click="openDisputeDialog(scope.row)">
+                  <el-icon><Service /></el-icon> 处理纠纷
                 </el-button>
                 <el-button v-if="scope.row.status === 0" size="small" type="danger" plain @click="cancelOrder(scope.row.id)">
                   <el-icon><CircleClose /></el-icon> 取消
@@ -357,18 +353,6 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column label="商品信息" min-width="220">
-              <template #default="scope">
-                <div class="order-product-item">
-                  <el-image v-if="scope.row.productImage" :src="scope.row.productImage" class="order-product-img" />
-                  <div v-else class="no-img">无图</div>
-                  <div class="order-product-info">
-                    <div class="name">{{ scope.row.productName || (scope.row.productId ? ('商品#' + scope.row.productId) : '商品信息') }}</div>
-                    <div class="count" v-if="scope.row.productId">ID:{{ scope.row.productId }}</div>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
             <el-table-column prop="reason" label="申请原因" width="120" />
             <el-table-column prop="description" label="说明" min-width="180" show-overflow-tooltip />
             <el-table-column label="状态" width="100">
@@ -382,69 +366,9 @@
             <el-table-column prop="createTime" label="申请时间" width="160">
                 <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column label="操作" width="100" fixed="right">
               <template #default="scope">
-                <el-button size="small" type="primary" plain @click="openAfterSaleDetail(scope.row)">查看详情</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-
-        <!-- ==================== 举报投诉 ==================== -->
-        <div v-if="activeMenu === 'complaints'" class="page-section">
-          <div class="section-header">
-            <h3>🚩 举报投诉处理</h3>
-          </div>
-
-          <el-table :data="complaints" class="custom-table" stripe>
-            <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="submitterName" label="举报人" width="120" />
-            <el-table-column prop="targetName" label="被投诉方" width="150" />
-            <el-table-column label="商品信息" min-width="220">
-              <template #default="scope">
-                <div class="order-product-item">
-                  <el-image v-if="scope.row.targetProductImage" :src="scope.row.targetProductImage" class="order-product-img" />
-                  <div v-else class="no-img">无图</div>
-                  <div class="order-product-info">
-                    <div class="name">{{ scope.row.targetProductName || (scope.row.type === 2 ? ('商品#' + scope.row.targetId) : '卖家投诉') }}</div>
-                    <div class="count">{{ scope.row.type === 2 ? '商品投诉' : '卖家投诉' }}</div>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="投诉内容" min-width="200">
-              <template #default="scope">
-                <div class="complaint-reason-cell">
-                  <div class="reason-text"><b>原因:</b> {{ scope.row.reason }}</div>
-                  <div class="complaint-images" v-if="scope.row.images">
-                    <el-image 
-                      v-for="(img, index) in parseImages(scope.row.images)" 
-                      :key="index"
-                      :src="img" 
-                      :preview-src-list="parseImages(scope.row.images)"
-                      :initial-index="index"
-                      class="mini-complaint-img"
-                      fit="cover"
-                    />
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="100">
-              <template #default="scope">
-                <el-tag v-if="scope.row.status === 0" type="danger" round size="small">待处理</el-tag>
-                <el-tag v-else-if="scope.row.status === 1" type="warning" round size="small">处理中</el-tag>
-                <el-tag v-else type="success" round size="small">已处理</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="时间" width="160">
-                <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
-            </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
-              <template #default="scope">
-                <el-button size="small" type="info" plain @click="openComplaintDetail(scope.row)">详情</el-button>
-                <el-button v-if="scope.row.status < 2" size="small" type="primary" plain @click="openComplaintDialog(scope.row)">处理</el-button>
-                <el-button v-else size="small" type="info" plain disabled>已结案</el-button>
+                <el-button size="small" type="primary" plain @click="viewAfterSaleDetail(scope.row)">查看</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -480,14 +404,12 @@
             </el-table-column>
             <el-table-column label="操作" width="150" fixed="right">
               <template #default="scope">
-                <div class="news-action-group">
-                  <el-button size="small" type="primary" plain @click="editNews(scope.row)">
-                    <el-icon><Edit /></el-icon> 编辑
-                  </el-button>
-                  <el-button size="small" type="danger" plain @click="deleteNews(scope.row.id)">
-                    <el-icon><Delete /></el-icon> 删除
-                  </el-button>
-                </div>
+                <el-button size="small" type="primary" plain @click="editNews(scope.row)">
+                  <el-icon><Edit /></el-icon> 编辑
+                </el-button>
+                <el-button size="small" type="danger" plain @click="deleteNews(scope.row.id)">
+                  <el-icon><Delete /></el-icon> 删除
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -525,104 +447,22 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="orderDetailVisible" title="订单详情" width="720px" class="custom-dialog">
-      <div v-if="selectedOrder">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="订单号">{{ selectedOrder.orderNo }}</el-descriptions-item>
-          <el-descriptions-item label="下单时间">{{ formatFullTime(selectedOrder.createTime) }}</el-descriptions-item>
-          <el-descriptions-item label="买家">{{ selectedOrder.buyerName || ('用户#' + selectedOrder.buyerId) }}</el-descriptions-item>
-          <el-descriptions-item label="卖家">{{ selectedOrder.sellerName || ('用户#' + selectedOrder.sellerId) }}</el-descriptions-item>
-          <el-descriptions-item label="状态">{{ orderStatusText(selectedOrder.status) }}</el-descriptions-item>
-          <el-descriptions-item label="金额">¥{{ selectedOrder.totalAmount }}</el-descriptions-item>
-        </el-descriptions>
-        <div style="margin-top: 14px; font-weight: 600;">商品明细</div>
-        <el-table :data="selectedOrder.items || []" stripe size="small" style="margin-top:8px">
-          <el-table-column label="商品" min-width="260">
-            <template #default="scope">
-              <div class="order-product-item">
-                <el-image v-if="scope.row.productImage" :src="scope.row.productImage" class="order-product-img" />
-                <div v-else class="no-img">无图</div>
-                <div class="order-product-info">
-                  <div class="name">{{ scope.row.productName || ('商品#' + scope.row.productId) }}</div>
-                </div>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="quantity" label="数量" width="90" />
-          <el-table-column label="单价" width="110">
-            <template #default="scope">¥{{ scope.row.price }}</template>
-          </el-table-column>
-        </el-table>
-      </div>
+    <!-- ==================== 处理纠纷弹窗 ==================== -->
+    <el-dialog v-model="disputeDialogVisible" title="处理订单纠纷" width="450px" class="custom-dialog">
+      <el-form label-width="90px">
+        <el-form-item label="订单号">
+          <el-input :model-value="disputeForm.orderNo" disabled />
+        </el-form-item>
+        <el-form-item label="处理方式">
+          <el-radio-group v-model="disputeForm.action">
+            <el-radio value="cancel">取消订单</el-radio>
+            <el-radio value="complete">强制完成</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
       <template #footer>
-        <el-button @click="orderDetailVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="afterSaleDetailVisible" title="售后详情" width="680px" class="custom-dialog">
-      <div v-if="selectedAfterSale">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="订单号">{{ selectedAfterSale.orderId }}</el-descriptions-item>
-          <el-descriptions-item label="申请时间">{{ formatFullTime(selectedAfterSale.createTime) }}</el-descriptions-item>
-          <el-descriptions-item label="买家">{{ selectedAfterSale.buyerName || ('用户#' + selectedAfterSale.buyerId) }}</el-descriptions-item>
-          <el-descriptions-item label="卖家">{{ selectedAfterSale.sellerName || ('用户#' + selectedAfterSale.sellerId) }}</el-descriptions-item>
-          <el-descriptions-item label="商品">{{ selectedAfterSale.productName || (selectedAfterSale.productId ? ('商品#' + selectedAfterSale.productId) : '—') }}</el-descriptions-item>
-          <el-descriptions-item label="状态">{{ afterSaleStatusText(selectedAfterSale.status) }}</el-descriptions-item>
-          <el-descriptions-item label="申请原因" :span="2">{{ selectedAfterSale.reason || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="说明" :span="2">{{ selectedAfterSale.description || '—' }}</el-descriptions-item>
-        </el-descriptions>
-        <div style="margin-top: 14px;">
-          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">商品/凭证图片</div>
-          <div class="dialog-images" v-if="selectedAfterSale.images && parseImages(selectedAfterSale.images).length">
-            <el-image
-              v-for="(img, index) in parseImages(selectedAfterSale.images)"
-              :key="index"
-              :src="img"
-              :preview-src-list="parseImages(selectedAfterSale.images)"
-              class="dialog-complaint-img"
-            />
-          </div>
-          <div class="dialog-images" v-else-if="selectedAfterSale.productImage">
-            <el-image :src="selectedAfterSale.productImage" :preview-src-list="[selectedAfterSale.productImage]" class="dialog-complaint-img" />
-          </div>
-          <div v-else style="color:#999;">无图片</div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="afterSaleDetailVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="complaintDetailVisible" title="投诉详情" width="680px" class="custom-dialog">
-      <div v-if="selectedComplaint">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="举报人">{{ selectedComplaint.submitterName || ('用户#' + selectedComplaint.submitterId) }}</el-descriptions-item>
-          <el-descriptions-item label="时间">{{ formatFullTime(selectedComplaint.createTime) }}</el-descriptions-item>
-          <el-descriptions-item label="被投诉方">{{ selectedComplaint.targetName || ('ID:' + selectedComplaint.targetId) }}</el-descriptions-item>
-          <el-descriptions-item label="类型">{{ selectedComplaint.type === 2 ? '商品投诉' : '卖家投诉' }}</el-descriptions-item>
-          <el-descriptions-item label="投诉原因" :span="2">{{ selectedComplaint.reason || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="处理状态">{{ selectedComplaint.status === 0 ? '待处理' : (selectedComplaint.status === 1 ? '处理中' : '已处理') }}</el-descriptions-item>
-          <el-descriptions-item label="处理结果">{{ selectedComplaint.result || '—' }}</el-descriptions-item>
-        </el-descriptions>
-        <div style="margin-top: 14px;">
-          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">商品/凭证图片</div>
-          <div class="dialog-images" v-if="selectedComplaint.images && parseImages(selectedComplaint.images).length">
-            <el-image
-              v-for="(img, index) in parseImages(selectedComplaint.images)"
-              :key="index"
-              :src="img"
-              :preview-src-list="parseImages(selectedComplaint.images)"
-              class="dialog-complaint-img"
-            />
-          </div>
-          <div class="dialog-images" v-else-if="selectedComplaint.targetProductImage">
-            <el-image :src="selectedComplaint.targetProductImage" :preview-src-list="[selectedComplaint.targetProductImage]" class="dialog-complaint-img" />
-          </div>
-          <div v-else style="color:#999;">无图片</div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="complaintDetailVisible = false">关闭</el-button>
+        <el-button @click="disputeDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitDispute">确认处理</el-button>
       </template>
     </el-dialog>
 
@@ -660,7 +500,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Setting, SwitchButton, Plus, Search, Edit, Delete, VideoPlay, Promotion, CircleClose, View, Lock, Check, EditPen } from '@element-plus/icons-vue'
+import { Setting, SwitchButton, Plus, Search, Edit, Delete, VideoPlay, Promotion, Service, CircleClose, View, Lock, Check, EditPen } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 
 const router = useRouter()
@@ -679,18 +519,14 @@ const orderFilter = ref('')
 
 // ============ 弹窗控制 ============
 const complaintDialogVisible = ref(false)
+const disputeDialogVisible = ref(false)
 const newsDialogVisible = ref(false)
-const orderDetailVisible = ref(false)
-const afterSaleDetailVisible = ref(false)
-const complaintDetailVisible = ref(false)
 const isEditNews = ref(false)
 const editingNewsId = ref(null)
-const selectedOrder = ref(null)
-const selectedAfterSale = ref(null)
-const selectedComplaint = ref(null)
 
 // ============ 表单 ============
 const complaintHandleForm = reactive({ id: null, reason: '', result: '', images: '' })
+const disputeForm = reactive({ orderId: null, orderNo: '', action: 'cancel' })
 const newsForm = reactive({ title: '', content: '', coverImage: '', adminId: adminId.value })
 
 const uploadHeaders = computed(() => ({ Authorization: 'Bearer ' + localStorage.getItem('token') }))
@@ -756,13 +592,6 @@ const handleMenuSelect = (index) => {
   else if (index === 'news') loadNews()
 }
 
-const isValidId = (id) => {
-  if (id === null || id === undefined) return false
-  const s = String(id).trim().toLowerCase()
-  if (!s || s === 'null' || s === 'undefined') return false
-  return !Number.isNaN(Number(s))
-}
-
 // ============ 数据加载 ============
 const loadDashboard = async () => {
   await Promise.all([loadUsers(), loadOrders(), loadProducts(), loadComplaints(), loadNews(), loadAfterSales()])
@@ -781,72 +610,21 @@ const loadOrders = async () => {
   try {
     const res = await request.get('/order/list')
     const list = res.data || []
-    const userCache = new Map()
-    const productCache = new Map()
-
-    for (const o of list) {
-      // order/list 可能不含 items，补查详情
-      if (!o.items || o.items.length === 0) {
+    for(let o of list) {
+        // 补全买卖双方信息
         try {
-          const detailRes = await request.get(`/order/${o.id}`)
-          if (detailRes.data?.items) o.items = detailRes.data.items
-        } catch (e) {}
-      }
-
-      // 补全买卖双方信息
-      if (isValidId(o.buyerId)) {
-        const key = String(o.buyerId)
-        if (userCache.has(key)) o.buyerName = userCache.get(key)
-        else {
-          try {
             const bRes = await request.get(`/user/${o.buyerId}`)
-            const name = bRes.data?.nickname || `用户#${o.buyerId}`
-            userCache.set(key, name)
-            o.buyerName = name
-          } catch (e) {}
-        }
-      }
-      if (isValidId(o.sellerId)) {
-        const key = String(o.sellerId)
-        if (userCache.has(key)) o.sellerName = userCache.get(key)
-        else {
-          try {
+            if(bRes.data) o.buyerName = bRes.data.nickname
             const sRes = await request.get(`/user/${o.sellerId}`)
-            const name = sRes.data?.nickname || `用户#${o.sellerId}`
-            userCache.set(key, name)
-            o.sellerName = name
-          } catch (e) {}
-        }
-      }
-
-      // 补全订单商品信息（图片/名称）
-      if (o.items && o.items.length > 0) {
-        for (const item of o.items) {
-          if (!isValidId(item.productId)) continue
-          const pKey = String(item.productId)
-          let product = null
-          if (productCache.has(pKey)) product = productCache.get(pKey)
-          else {
+            if(sRes.data) o.sellerName = sRes.data.nickname
+        } catch(e){}
+        // 补全第一个商品信息预览
+        if(o.items && o.items.length > 0) {
             try {
-              const pRes = await request.get(`/product/${item.productId}`)
-              product = pRes.data || null
-            } catch (e) {
-              product = null
-            }
-            productCache.set(pKey, product)
-          }
-          if (product) {
-            item.productName = item.productName || product.name
-            item.productImage = item.productImage || getFirstImage(product.images)
-          }
+                const pRes = await request.get(`/product/${o.items[0].productId}`)
+                if(pRes.data) o.product = pRes.data
+            } catch(e){}
         }
-        if (o.items[0]) {
-          o.product = {
-            name: o.items[0].productName,
-            images: JSON.stringify(o.items[0].productImage ? [o.items[0].productImage] : [])
-          }
-        }
-      }
     }
     allOrders.value = list
   } catch (error) {
@@ -867,47 +645,19 @@ const loadComplaints = async () => {
   try {
     const res = await request.get('/complaint/list')
     const list = res.data || []
-    const userCache = new Map()
-    const productCache = new Map()
-
-    for (const c of list) {
-      try {
-        if (isValidId(c.submitterId)) {
-          const key = String(c.submitterId)
-          if (userCache.has(key)) c.submitterName = userCache.get(key)
-          else {
+    for(let c of list) {
+        try {
             const uRes = await request.get(`/user/${c.submitterId}`)
-            const name = uRes.data?.nickname || `用户#${c.submitterId}`
-            userCache.set(key, name)
-            c.submitterName = name
-          }
-        }
-
-        if (c.type === 1 && isValidId(c.targetId)) {
-          const key = String(c.targetId)
-          if (userCache.has(key)) c.targetName = userCache.get(key)
-          else {
-            const sRes = await request.get(`/user/${c.targetId}`)
-            const name = sRes.data?.shopName || sRes.data?.nickname || `用户#${c.targetId}`
-            userCache.set(key, name)
-            c.targetName = name
-          }
-        } else if (c.type !== 1 && isValidId(c.targetId)) {
-          const key = String(c.targetId)
-          let product = null
-          if (productCache.has(key)) product = productCache.get(key)
-          else {
-            const pRes = await request.get(`/product/${c.targetId}`)
-            product = pRes.data || null
-            productCache.set(key, product)
-          }
-          if (product) {
-            c.targetName = product.name
-            c.targetProductName = product.name
-            c.targetProductImage = getFirstImage(product.images)
-          }
-        }
-      } catch (e) {}
+            if(uRes.data) c.submitterName = uRes.data.nickname
+            
+            if(c.type === 1) { // 卖家
+                const sRes = await request.get(`/user/${c.targetId}`)
+                if(sRes.data) c.targetName = sRes.data.shopName || sRes.data.nickname
+            } else { // 商品
+                const pRes = await request.get(`/product/${c.targetId}`)
+                if(pRes.data) c.targetName = pRes.data.name
+            }
+        } catch(e){}
     }
     complaints.value = list
   } catch (error) {
@@ -917,78 +667,14 @@ const loadComplaints = async () => {
 
 const loadAfterSales = async () => {
     try {
-        const [afterRes, orderRes] = await Promise.all([
-          request.get('/aftersale/list'),
-          request.get('/order/list')
-        ])
-        const list = afterRes.data || []
-        const orderMap = new Map((orderRes.data || []).map(o => [String(o.id), o]))
-        const userCache = new Map()
-        const productCache = new Map()
-
+        const res = await request.get('/aftersale/list')
+        const list = res.data || []
         for(let a of list) {
-            const linkedOrder = orderMap.get(String(a.orderId))
-            if (!isValidId(a.buyerId) && linkedOrder && isValidId(linkedOrder.buyerId)) {
-              a.buyerId = linkedOrder.buyerId
-            }
-            if (!isValidId(a.sellerId) && linkedOrder && isValidId(linkedOrder.sellerId)) {
-              a.sellerId = linkedOrder.sellerId
-            }
-
-            // 订单商品信息
-            if (isValidId(a.orderId)) {
-              try {
-                const detailRes = await request.get(`/order/${a.orderId}`)
-                const orderDetail = detailRes.data || linkedOrder
-                if (orderDetail?.items?.length) {
-                  const firstItem = orderDetail.items[0]
-                  a.productId = firstItem.productId
-                  a.productName = firstItem.productName
-                  a.productImage = firstItem.productImage
-
-                  if ((!a.productName || !a.productImage) && isValidId(firstItem.productId)) {
-                    const pKey = String(firstItem.productId)
-                    let product = null
-                    if (productCache.has(pKey)) product = productCache.get(pKey)
-                    else {
-                      const pRes = await request.get(`/product/${firstItem.productId}`)
-                      product = pRes.data || null
-                      productCache.set(pKey, product)
-                    }
-                    if (product) {
-                      if (!a.productName) a.productName = product.name
-                      if (!a.productImage) a.productImage = getFirstImage(product.images)
-                    }
-                  }
-                }
-              } catch (e) {}
-            }
             try {
-                if (isValidId(a.buyerId)) {
-                  const key = String(a.buyerId)
-                  if (userCache.has(key)) a.buyerName = userCache.get(key)
-                  else {
-                    const bRes = await request.get(`/user/${a.buyerId}`)
-                    const name = bRes.data?.nickname || `用户#${a.buyerId}`
-                    userCache.set(key, name)
-                    a.buyerName = name
-                  }
-                } else {
-                  a.buyerName = '未知用户'
-                }
-
-                if (isValidId(a.sellerId)) {
-                  const key = String(a.sellerId)
-                  if (userCache.has(key)) a.sellerName = userCache.get(key)
-                  else {
-                    const sRes = await request.get(`/user/${a.sellerId}`)
-                    const name = sRes.data?.nickname || `用户#${a.sellerId}`
-                    userCache.set(key, name)
-                    a.sellerName = name
-                  }
-                } else {
-                  a.sellerName = '未知卖家'
-                }
+                const bRes = await request.get(`/user/${a.buyerId}`)
+                if(bRes.data) a.buyerName = bRes.data.nickname
+                const sRes = await request.get(`/user/${a.sellerId}`)
+                if(sRes.data) a.sellerName = sRes.data.nickname
             } catch(e){}
         }
         allAfterSales.value = list
@@ -997,19 +683,8 @@ const loadAfterSales = async () => {
     }
 }
 
-const openOrderDetail = (row) => {
-  selectedOrder.value = row
-  orderDetailVisible.value = true
-}
-
-const openAfterSaleDetail = (row) => {
-  selectedAfterSale.value = row
-  afterSaleDetailVisible.value = true
-}
-
-const openComplaintDetail = (row) => {
-  selectedComplaint.value = row
-  complaintDetailVisible.value = true
+const viewAfterSaleDetail = (row) => {
+    ElMessageBox.alert(`售后原因: ${row.reason}\n说明: ${row.description}`, '售后详情')
 }
 
 const formatFullTime = (timeStr) => {
@@ -1031,12 +706,6 @@ const parseImages = (images) => {
 }
 
 const getFirstImage = (images) => {
-  if (!images) return null
-  try {
-    const list = typeof images === 'string' ? JSON.parse(images) : images
-    return Array.isArray(list) && list.length > 0 ? list[0] : null
-  } catch { return null }
-}
 
 const loadNews = async () => {
   try {
@@ -1070,17 +739,22 @@ const orderStatusType = (status) => {
   return ['', 'warning', 'info', 'success', 'danger'][status] || 'info'
 }
 
-const afterSaleStatusText = (status) => {
-  return status === 0 ? '待审核' : status === 1 ? '处理中' : status === 2 ? '已完成' : '已驳回'
+const openDisputeDialog = (order) => {
+  disputeForm.orderId = order.id
+  disputeForm.orderNo = order.orderNo
+  disputeForm.action = 'cancel'
+  disputeDialogVisible.value = true
 }
 
-const shipOrder = async (id) => {
+const submitDispute = async () => {
   try {
-    await request.put(`/order/${id}/status`, null, { params: { status: 2 } })
-    ElMessage.success('发货成功')
+    const newStatus = disputeForm.action === 'cancel' ? 4 : 3
+    await request.put(`/order/${disputeForm.orderId}/status`, null, { params: { status: newStatus } })
+    ElMessage.success('纠纷处理成功')
+    disputeDialogVisible.value = false
     loadOrders()
   } catch (error) {
-    ElMessage.error('发货失败')
+    ElMessage.error('处理失败')
   }
 }
 
@@ -1535,16 +1209,5 @@ onMounted(() => {
   border-radius: 8px;
   border: 1px solid #ebeef5;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
-}
-
-.news-action-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-}
-
-.news-action-group .el-button {
-  margin-left: 0 !important;
 }
 </style>

@@ -14,7 +14,14 @@ public class OrderItem {
     private Long productId;
     private Integer quantity;
     private BigDecimal price;
-
+    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+    
+    // 临时字段，用于前端展示
+    @TableField(exist = false)
+    private String productName;
+    
+    @TableField(exist = false)
+    private String productImage;
 }

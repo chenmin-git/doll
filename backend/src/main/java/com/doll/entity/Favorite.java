@@ -11,7 +11,10 @@ public class Favorite {
     private Long id;
     private Long userId;
     private Long productId;
-
+    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+    
+    @TableLogic
+    private Integer isDeleted;
 }

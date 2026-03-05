@@ -1,11 +1,13 @@
 package com.doll.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.doll.common.Result;
 import com.doll.entity.Product;
 import com.doll.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/product")
@@ -51,5 +53,12 @@ public class ProductController {
     @GetMapping("/{id}")
     public Result<Product> getById(@PathVariable Long id) {
         return Result.success(productService.getById(id));
+    }
+
+    @GetMapping("/seller/{sellerId}")
+    public Result<List<Product>> getBySeller(@PathVariable Long sellerId) {
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Product::getSellerId, sellerId).orderByDesc(Product::getCreateTime);
+        return Result.success(productService.list(wrapper));
     }
 }

@@ -15,13 +15,19 @@ public class Review {
     private Long sellerId;
     private Integer rating;
     private String content;
-    
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
-    
+
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-    
+
     @TableLogic
     private Integer isDeleted;
+
+    @TableField(exist = false)
+    private String buyerNickname;
+
+    @TableField(exist = false)
+    private String buyerAvatar;
 }
