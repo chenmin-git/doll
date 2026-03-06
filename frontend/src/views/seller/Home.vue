@@ -181,6 +181,69 @@
           </el-table>
         </div>
 
+        <!-- ==================== 订单管理 ==================== -->
+        <div v-if="activeMenu === 'orders'" class="page-section">
+          <div class="section-header">
+            <h3>📋 订单管理</h3>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-value">{{ orders.length }}</div>
+              <div class="stat-label">全部订单</div>
+            </div>
+            <div class="stat-card stat-active">
+              <div class="stat-value">{{ orders.filter(o => o.status === 1).length }}</div>
+              <div class="stat-label">待发货</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ orders.filter(o => o.status === 3).length }}</div>
+              <div class="stat-label">已完成</div>
+            </div>
+          </div>
+
+          <el-table :data="orders" class="custom-table" stripe>
+            <el-table-column prop="orderNo" label="订单号" min-width="160" />
+            <el-table-column label="商品信息" min-width="240">
+              <template #default="scope">
+                <div v-for="item in scope.row.items" :key="item.id" class="order-product-item">
+                  <el-image :src="item.productImage" class="order-product-img">
+                    <template #error><div class="img-error">🧸</div></template>
+                  </el-image>
+                  <div class="order-product-info">
+                    <div class="name">{{ item.productName || ('商品#' + item.productId) }}</div>
+                    <div class="count">x{{ item.quantity }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="金额" width="100">
+              <template #default="scope">
+                <span class="price-text">¥{{ scope.row.totalAmount }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="scope">
+                <el-tag v-if="scope.row.status === 0" effect="light" round>待支付</el-tag>
+                <el-tag v-else-if="scope.row.status === 1" type="warning" effect="light" round>待发货</el-tag>
+                <el-tag v-else-if="scope.row.status === 2" type="info" effect="light" round>待收货</el-tag>
+                <el-tag v-else-if="scope.row.status === 3" type="success" effect="light" round>已完成</el-tag>
+                <el-tag v-else-if="scope.row.status === 4" type="danger" effect="light" round>已取消</el-tag>
+                <el-tag v-else type="danger" effect="light" round>纠纷中</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="下单时间" min-width="180">
+              <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="scope">
+                <el-button v-if="scope.row.status === 1" size="small" type="primary" plain @click="shipOrder(scope.row.id)">发货</el-button>
+                <span v-else>—</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
         <!-- ==================== 售后管理 ==================== -->
         <div v-if="activeMenu === 'after_sales'" class="page-section">
           <div class="section-header">
