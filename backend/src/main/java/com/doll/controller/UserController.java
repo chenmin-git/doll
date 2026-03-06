@@ -43,4 +43,12 @@ public class UserController {
     public Result<User> getUser(@PathVariable Long id) {
         return Result.success(userService.getById(id));
     }
+
+    @PostMapping("/password/{id}")
+    public Result<?> changePassword(@PathVariable Long id, @RequestBody java.util.Map<String, String> passwords) {
+        String oldPassword = passwords.get("oldPassword");
+        String newPassword = passwords.get("newPassword");
+        userService.changePassword(id, oldPassword, newPassword);
+        return Result.success();
+    }
 }

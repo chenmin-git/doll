@@ -393,104 +393,97 @@
 
         <!-- ==================== 个人中心 ==================== -->
         <div v-if="activeMenu === 'profile'" class="page-section">
-          <div class="profile-layout">
-            <!-- 左侧导航栏 -->
-            <div class="profile-sidebar-nav">
-              <div class="profile-nav-header">
-                <div class="profile-avatar-wrap">
-                  <el-upload
-                    class="avatar-uploader-small"
-                    action="/api/upload"
-                    :headers="uploadHeaders"
-                    :show-file-list="false"
-                    :on-success="handleAvatarSuccess"
-                  >
-                    <img v-if="profileForm.avatar" :src="profileForm.avatar" class="avatar-small" />
-                    <el-icon v-else class="avatar-uploader-icon-small"><Plus /></el-icon>
-                  </el-upload>
-                </div>
-                <div class="profile-nav-info">
-                  <div class="nav-nickname">{{ profileForm.nickname || '买家' }}</div>
-                  <div class="nav-id">ID: {{ userId }}</div>
-                </div>
-              </div>
-              <div class="side-nav-menu">
-                <div class="side-nav-item" :class="{active: profileActiveTab === 'info'}" @click="profileActiveTab = 'info'">
-                  <el-icon><User /></el-icon> 修改资料
-                </div>
-                <div class="side-nav-item" :class="{active: profileActiveTab === 'address'}" @click="profileActiveTab = 'address'">
-                  <el-icon><Location /></el-icon> 收货地址
-                </div>
-                <div class="side-nav-item" :class="{active: profileActiveTab === 'posts'}" @click="profileActiveTab = 'posts'">
-                  <el-icon><ChatLineSquare /></el-icon> 我的发帖
-                </div>
-                <div class="side-nav-item" :class="{active: profileActiveTab === 'favorites'}" @click="profileActiveTab = 'favorites'">
-                  <el-icon><Star /></el-icon> 我的收藏
-                </div>
-              </div>
-            </div>
+          <div class="section-header">
+            <h3>👤 个人中心</h3>
+          </div>
 
-            <!-- 右侧面板 -->
-            <div class="profile-main">
-              <!-- 修改资料 -->
-              <div class="profile-card form-card" v-if="profileActiveTab === 'info'">
-                <div class="card-header"><h3>✍️ 修改资料</h3></div>
-                <el-form :model="profileForm" label-width="90px" class="profile-form">
-                  <el-form-item label="昵称"><el-input v-model="profileForm.nickname" /></el-form-item>
-                  <el-form-item label="手机号"><el-input v-model="profileForm.phone" /></el-form-item>
-                  <el-form-item><el-button type="primary" @click="updateProfile" class="action-btn" long>保存修改</el-button></el-form-item>
-                </el-form>
+          <div class="profile-container" style="display: flex; justify-content: center; width: 100%;">
+            <div class="profile-card" style="background: white; padding: 40px; border-radius: 16px; border: 1px solid #f0ebe8; box-shadow: 0 8px 30px rgba(0,0,0,0.05); width: 100%; max-width: 800px;">
+              <div class="profile-avatar" style="width: 100%; display: flex; justify-content: center; margin-bottom: 30px;">
+                <el-upload
+                  class="avatar-uploader"
+                  action="/api/upload"
+                  :headers="uploadHeaders"
+                  :show-file-list="false"
+                  :on-success="handleAvatarSuccess"
+                >
+                  <el-avatar :size="80" :src="profileForm.avatar || ''">
+                    <span v-if="!profileForm.avatar" style="font-size: 32px">🧸</span>
+                  </el-avatar>
+                </el-upload>
+              </div>
+              <el-form :model="profileForm" label-width="100px" class="profile-form">
+                <el-form-item label="昵称">
+                  <el-input v-model="profileForm.nickname" placeholder="请输入昵称" />
+                </el-form-item>
+                <el-form-item label="联系电话">
+                  <el-input v-model="profileForm.phone" placeholder="请输入联系电话" />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="updateProfile" class="action-btn">保存修改</el-button>
+                  <el-button type="warning" @click="passwordDialogVisible = true" style="margin-left: 10px;">修改密码</el-button>
+                </el-form-item>
+              </el-form>
+
+              <el-divider>其他管理</el-divider>
+              <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                <el-button type="text" @click="profileActiveTab = 'address'"><el-icon><Location /></el-icon> 收货地址</el-button>
+                <el-button type="text" @click="profileActiveTab = 'posts'"><el-icon><ChatLineSquare /></el-icon> 我的发帖</el-button>
+                <el-button type="text" @click="profileActiveTab = 'favorites'"><el-icon><Star /></el-icon> 我的收藏</el-button>
               </div>
 
-              <!-- 收货地址 -->
-              <div class="profile-card form-card" v-if="profileActiveTab === 'address'">
-                <div class="card-header"><h3>📍 收货地址管理</h3></div>
-                <el-form :model="defaultAddress" label-position="top" class="custom-address-form">
-                  <el-row :gutter="20">
-                    <el-col :span="12"><el-form-item label="姓名"><el-input v-model="defaultAddress.receiver" /></el-form-item></el-col>
-                    <el-col :span="12"><el-form-item label="电话"><el-input v-model="defaultAddress.phone" /></el-form-item></el-col>
-                  </el-row>
-                  <el-row :gutter="20">
-                    <el-col :span="8">
-                      <el-form-item label="省份">
-                        <el-select v-model="defaultAddress.province" placeholder="省份">
-                          <el-option v-for="p in provinces" :key="p" :label="p" :value="p" />
-                        </el-select>
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="8"><el-form-item label="城市"><el-input v-model="defaultAddress.city" /></el-form-item></el-col>
-                    <el-col :span="8"><el-form-item label="区县"><el-input v-model="defaultAddress.district" /></el-form-item></el-col>
-                  </el-row>
-                  <el-form-item label="详细地址"><el-input v-model="defaultAddress.detail" type="textarea" :rows="2" /></el-form-item>
-                  <el-button type="primary" class="action-btn" style="width:100%" @click="saveDefaultAddress">保存地址</el-button>
-                </el-form>
-              </div>
+              <!-- 根据点击展示子面板 (地址/帖子/收藏) -->
+              <div v-if="profileActiveTab !== 'info'" style="margin-top: 30px; border-top: 1px solid #f0ebe8; padding-top: 20px; text-align: left;">
+                <div v-if="profileActiveTab === 'address'">
+                  <h4 style="margin-bottom: 20px;">📍 收货地址管理</h4>
+                  <el-form :model="defaultAddress" label-position="top">
+                    <el-row :gutter="20">
+                      <el-col :span="12"><el-form-item label="姓名"><el-input v-model="defaultAddress.receiver" /></el-form-item></el-col>
+                      <el-col :span="12"><el-form-item label="电话"><el-input v-model="defaultAddress.phone" /></el-form-item></el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                      <el-col :span="8">
+                        <el-form-item label="省份">
+                          <el-select v-model="defaultAddress.province" placeholder="省份">
+                            <el-option v-for="p in provinces" :key="p" :label="p" :value="p" />
+                          </el-select>
+                        </el-form-item>
+                      </el-col>
+                      <el-col :span="8"><el-form-item label="城市"><el-input v-model="defaultAddress.city" /></el-form-item></el-col>
+                      <el-col :span="8"><el-form-item label="区县"><el-input v-model="defaultAddress.district" /></el-form-item></el-col>
+                    </el-row>
+                    <el-form-item label="详细地址"><el-input v-model="defaultAddress.detail" type="textarea" :rows="2" /></el-form-item>
+                    <el-button type="primary" style="width:100%" @click="saveDefaultAddress">保存地址</el-button>
+                  </el-form>
+                </div>
 
-              <!-- 我的收藏 -->
-              <div class="profile-card" v-if="profileActiveTab === 'favorites'">
-                <div class="card-header"><h3>⭐ 我的收藏商品</h3></div>
-                <div class="fav-grid" v-if="favoriteProducts.length > 0">
-                  <div v-for="fp in favoriteProducts" :key="fp.id" class="fav-item" @click="openProductDetailById(fp.id)">
-                    <el-image :src="getFirstImage(fp.images)" class="fav-img" fit="cover" />
-                    <div class="fav-info">
-                      <div class="fav-name">{{ fp.name }}</div>
-                      <div class="fav-price">¥{{ fp.price }}</div>
+                <div v-if="profileActiveTab === 'favorites'">
+                  <h4 style="margin-bottom: 20px;">⭐ 我的收藏商品</h4>
+                  <div class="fav-grid" v-if="favoriteProducts && favoriteProducts.length > 0">
+                    <div v-for="fp in favoriteProducts" :key="fp.id" class="fav-item" @click="openProductDetailById(fp.id)">
+                      <el-image :src="getFirstImage(fp.images)" class="fav-img" fit="cover" />
+                      <div class="fav-info">
+                        <div class="fav-name">{{ fp.name }}</div>
+                        <div class="fav-price">¥{{ fp.price }}</div>
+                      </div>
                     </div>
                   </div>
+                  <el-empty v-else description="暂无收藏" />
                 </div>
-                <el-empty v-else description="暂无收藏" />
-              </div>
 
-              <!-- 我的发帖 -->
-              <div class="profile-card" v-if="profileActiveTab === 'posts'">
-                <div class="card-header"><h3>📝 我的发布记录</h3></div>
-                <div class="user-posts" v-if="myOwnPosts.length > 0">
-                  <div v-for="post in myOwnPosts" :key="post.id" class="user-post-item" @click="openPostDetail(post)">
-                    <div class="up-title">{{ post.title }}</div>
-                    <div class="up-time">{{ post.createTime }}</div>
+                <div v-if="profileActiveTab === 'posts'">
+                  <h4 style="margin-bottom: 20px;">📝 我的发布记录</h4>
+                  <div class="user-posts" v-if="myOwnPosts && myOwnPosts.length > 0">
+                    <div v-for="post in myOwnPosts" :key="post.id" class="user-post-item" @click="openPostDetail(post)">
+                      <div class="up-title">{{ post.title }}</div>
+                      <div class="up-time">{{ formatFullTime(post.createTime) }}</div>
+                    </div>
                   </div>
+                  <el-empty v-else description="尚未发布帖子" />
                 </div>
-                <el-empty v-else description="尚未发布帖子" />
+                <div style="text-align: center; margin-top: 20px;">
+                  <el-button @click="profileActiveTab = 'info'">返回资料修改</el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -761,6 +754,26 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- ==================== 修改密码弹窗 ==================== -->
+    <el-dialog v-model="passwordDialogVisible" title="修改密码" width="400px" class="custom-dialog">
+      <el-form :model="passwordForm" label-width="80px">
+        <el-form-item label="原密码">
+          <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入原密码" />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitPasswordChange">确定修改</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -773,11 +786,7 @@ import request from '../../utils/request'
 
 const router = useRouter()
 const auctions = ref([])
-const bidDialogVisible = ref(false)
-const biddingAuction = ref(null)
-const bidForm = reactive({
-    bidPrice: 0
-})
+
 
 const formatFullTime = (timeStr) => {
   if (!timeStr) return '—'
@@ -814,7 +823,14 @@ const showComplaintDialog = ref(false)
 const checkoutDialogVisible = ref(false)
 const postDetailVisible = ref(false)
 const newsDetailVisible = ref(false)
+const passwordDialogVisible = ref(false)
+const bidDialogVisible = ref(false)
+const biddingAuction = ref(null)
+const bidForm = reactive({
+    bidPrice: 0
+})
 const selectedProduct = ref(null)
+
 const selectedPost = ref(null)
 const selectedNews = ref(null)
 
@@ -835,6 +851,12 @@ const addressForm = reactive({ receiver: '', phone: '', address: '' })
 const defaultAddress = reactive({ receiver: '', phone: '', province: '', city: '', district: '', detail: '', address: '', isDefault: true })
 const postFileList = ref([])
 const complaintFileList = ref([])
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
 const provinces = ['北京市', '天津市', '河北省', '山西省', '内蒙古自治区', '辽宁省', '吉林省', '黑龙江省', '上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省', '重庆市', '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区', '台湾省']
 
 const uploadHeaders = computed(() => ({ Authorization: 'Bearer ' + localStorage.getItem('token') }))
@@ -1549,6 +1571,37 @@ const handleLogout = () => {
     .then(() => { localStorage.removeItem('token'); localStorage.removeItem('userId'); localStorage.removeItem('role'); ElMessage.success('已退出'); router.push('/login') })
     .catch(() => {})
 }
+
+const submitPasswordChange = async () => {
+  if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    ElMessage.warning('请填写完整')
+    return
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    ElMessage.error('两次输入的新密码不一致')
+    return
+  }
+  try {
+    const res = await request.post(`/user/password/${userId.value}`, {
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
+    if (res.code === 200) {
+      ElMessage.success('密码修改成功，请重新登录')
+      passwordDialogVisible.value = false
+      Object.assign(passwordForm, { oldPassword: '', newPassword: '', confirmPassword: '' })
+      localStorage.removeItem('token')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('role')
+      router.push('/login')
+    } else {
+      ElMessage.error(res.message || '修改失败')
+    }
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '修改失败，请检查原密码')
+  }
+}
+
 
 onMounted(() => { 
   loadPersistedPostComments()

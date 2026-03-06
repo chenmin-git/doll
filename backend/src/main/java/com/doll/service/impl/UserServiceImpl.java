@@ -45,4 +45,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         updateById(user);
         return getById(userId);
     }
+
+    @Override
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = getById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (!user.getPassword().equals(oldPassword)) {
+            throw new RuntimeException("原密码错误");
+        }
+        user.setPassword(newPassword);
+        updateById(user);
+    }
 }

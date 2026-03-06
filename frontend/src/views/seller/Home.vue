@@ -424,6 +424,7 @@
                 </el-form-item>
                 <el-form-item>
                   <el-button type="primary" @click="updateProfile" class="action-btn">保存修改</el-button>
+                  <el-button type="warning" @click="passwordDialogVisible = true" style="margin-left: 10px;">修改密码</el-button>
                 </el-form-item>
               </el-form>
             </div>
@@ -613,6 +614,25 @@
         <el-button @click="complaintDetailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- ==================== 修改密码弹窗 ==================== -->
+    <el-dialog v-model="passwordDialogVisible" title="修改密码" width="400px" class="custom-dialog">
+      <el-form :model="passwordForm" label-width="80px">
+        <el-form-item label="原密码">
+          <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入原密码" />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitPasswordChange">确定修改</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -642,6 +662,7 @@ const auctionDialogVisible = ref(false)
 const complaintDialogVisible = ref(false)
 const reviewDetailVisible = ref(false)
 const complaintDetailVisible = ref(false)
+const passwordDialogVisible = ref(false)
 const isEditProduct = ref(false)
 const editingProductId = ref(null)
 const selectedReview = ref(null)
@@ -698,6 +719,12 @@ const profileForm = reactive({
 
 const complaintHandleForm = reactive({
   id: null, reason: '', result: ''
+})
+
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
 })
 
 // ============ 计算属性 ============
@@ -1198,6 +1225,36 @@ const updateProfile = async () => {
     ElMessage.success('保存成功')
   } catch (error) {
     ElMessage.error('保存失败')
+  }
+}
+
+const submitPasswordChange = async () => {
+  if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    ElMessage.warning('请填写完整')
+    return
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    ElMessage.error('两次输入的新密码不一致')
+    return
+  }
+  try {
+    const res = await request.post(`/user/password/${sellerId.value}`, {
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
+    if (res.code === 200) {
+      ElMessage.success('密码修改成功，请重新登录')
+      passwordDialogVisible.value = false
+      Object.assign(passwordForm, { oldPassword: '', newPassword: '', confirmPassword: '' })
+      localStorage.removeItem('token')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('role')
+      router.push('/login')
+    } else {
+      ElMessage.error(res.message || '修改失败')
+    }
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '修改失败，请检查原密码')
   }
 }
 
