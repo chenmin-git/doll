@@ -16,14 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `doll`
---
-
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `doll` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-
-USE `doll`;
-
---
 -- Table structure for table `addresses`
 --
 
@@ -67,19 +59,19 @@ DROP TABLE IF EXISTS `after_sales`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `after_sales` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `order_id` bigint NOT NULL COMMENT '璁㈠崟ID',
-  `buyer_id` bigint NOT NULL COMMENT '涔板?ID',
+  `order_id` bigint NOT NULL COMMENT '订单ID',
+  `buyer_id` bigint NOT NULL COMMENT '买家ID',
   `seller_id` bigint DEFAULT NULL,
-  `reason` varchar(255) NOT NULL COMMENT '鍞?悗鍘熷洜',
-  `status` tinyint NOT NULL DEFAULT '0' COMMENT '鐘舵?: 0-鐢宠?涓? 1-鍚屾剰閫??/閫?揣, 2-鎷掔粷, 3-宸插畬鎴',
-  `description` text COMMENT '闂??鎻忚堪',
-  `images` json DEFAULT NULL COMMENT '鍥剧墖鍑?瘉(JSON鏁扮粍)',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '售后原因',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态: 0-申请中, 1-同意退款/退货, 2-拒绝, 3-已完成',
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '问题描述',
+  `images` json DEFAULT NULL COMMENT '图片凭证(JSON数组)',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   KEY `idx_order_id` (`order_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='鍞?悗琛';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='售后表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -101,20 +93,20 @@ DROP TABLE IF EXISTS `auctions`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `auctions` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `product_id` bigint NOT NULL COMMENT '鍟嗗搧ID',
-  `seller_id` bigint NOT NULL COMMENT '鍗栧?ID',
-  `start_price` decimal(10,2) NOT NULL COMMENT '璧锋媿浠',
-  `current_price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '褰撳墠鏈?珮浠',
-  `winner_id` bigint DEFAULT NULL COMMENT '涓?爣浜篒D',
-  `start_time` datetime NOT NULL COMMENT '寮??鏃堕棿',
-  `end_time` datetime NOT NULL COMMENT '缁撴潫鏃堕棿',
-  `status` tinyint NOT NULL DEFAULT '0' COMMENT '鐘舵?: 0-鏈?紑濮? 1-杩涜?涓? 2-宸茬粨鏉',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `product_id` bigint NOT NULL COMMENT '商品ID',
+  `seller_id` bigint NOT NULL COMMENT '卖家ID',
+  `start_price` decimal(10,2) NOT NULL COMMENT '起拍价',
+  `current_price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '当前最高价',
+  `winner_id` bigint DEFAULT NULL COMMENT '中标人ID',
+  `start_time` datetime NOT NULL COMMENT '开始时间',
+  `end_time` datetime NOT NULL COMMENT '结束时间',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态: 0-未开始, 1-进行中, 2-已结束',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   KEY `idx_product_id` (`product_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='鎷嶅崠娲诲姩琛';
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='拍卖活动表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -136,15 +128,15 @@ DROP TABLE IF EXISTS `carts`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `carts` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `user_id` bigint NOT NULL COMMENT '涔板?ID',
-  `product_id` bigint NOT NULL COMMENT '鍟嗗搧ID',
-  `quantity` int NOT NULL DEFAULT '1' COMMENT '鏁伴噺',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `user_id` bigint NOT NULL COMMENT '买家ID',
+  `product_id` bigint NOT NULL COMMENT '商品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='璐?墿杞﹁〃';
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='购物车表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -166,20 +158,20 @@ DROP TABLE IF EXISTS `complaints`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `complaints` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `submitter_id` bigint NOT NULL COMMENT '鎶曡瘔浜篒D',
-  `target_id` bigint NOT NULL COMMENT '琚?姇璇夌洰鏍嘔D(鍙?兘鏄?敤鎴锋垨鍟嗗搧)',
+  `submitter_id` bigint NOT NULL COMMENT '投诉人ID',
+  `target_id` bigint NOT NULL COMMENT '被投诉目标ID(可能是用户或商品)',
   `target_name` varchar(255) DEFAULT NULL,
-  `type` tinyint NOT NULL COMMENT '鎶曡瘔绫诲瀷: 1-閽堝?鐢ㄦ埛, 2-閽堝?鍟嗗搧',
-  `reason` varchar(255) NOT NULL COMMENT '鎶曡瘔鍘熷洜',
+  `type` tinyint NOT NULL COMMENT '投诉类型: 1-针对用户, 2-针对商品',
+  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '投诉原因',
   `images` text,
-  `status` tinyint NOT NULL DEFAULT '0' COMMENT '鐘舵?: 0-寰呭?鐞? 1-澶勭悊涓? 2-宸插?鐞',
-  `result` text COMMENT '澶勭悊缁撴灉',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态: 0-待处理, 1-处理中, 2-已处理',
+  `result` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '处理结果',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   KEY `idx_submitter_id` (`submitter_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='鎶曡瘔琛';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='投诉表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -230,15 +222,15 @@ DROP TABLE IF EXISTS `news`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `news` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `admin_id` bigint NOT NULL COMMENT '鍙戝竷绠＄悊鍛業D',
-  `title` varchar(100) NOT NULL COMMENT '璧勮?鏍囬?',
-  `content` text NOT NULL COMMENT '璧勮?鍐呭?',
-  `cover_image` varchar(255) DEFAULT NULL COMMENT '灏侀潰瀹ｄ紶鍥',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `admin_id` bigint NOT NULL COMMENT '发布管理员ID',
+  `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '资讯标题',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '资讯内容',
+  `cover_image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '封面宣传图',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='璧勮?鍏?憡琛';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='资讯公告表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -260,14 +252,14 @@ DROP TABLE IF EXISTS `order_items`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `order_items` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `order_id` bigint NOT NULL COMMENT '璁㈠崟ID',
-  `product_id` bigint NOT NULL COMMENT '鍟嗗搧ID',
-  `quantity` int NOT NULL COMMENT '鏁伴噺',
-  `price` decimal(10,2) NOT NULL COMMENT '璐?拱鏃朵环鏍',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
+  `order_id` bigint NOT NULL COMMENT '订单ID',
+  `product_id` bigint NOT NULL COMMENT '商品ID',
+  `quantity` int NOT NULL COMMENT '数量',
+  `price` decimal(10,2) NOT NULL COMMENT '购买时价格',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   KEY `idx_order_id` (`order_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='璁㈠崟鏄庣粏琛';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单明细表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -289,21 +281,21 @@ DROP TABLE IF EXISTS `orders`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `orders` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `order_no` varchar(64) NOT NULL COMMENT '璁㈠崟鍙',
-  `buyer_id` bigint NOT NULL COMMENT '涔板?ID',
-  `seller_id` bigint NOT NULL COMMENT '鍗栧?ID',
-  `total_amount` decimal(10,2) NOT NULL COMMENT '鎬婚噾棰',
-  `status` tinyint NOT NULL DEFAULT '0' COMMENT '鐘舵?: 0-寰呮敮浠? 1-寰呭彂璐? 2-寰呮敹璐? 3-宸插畬鎴? 4-宸插彇娑? 5-绾犵悍涓',
-  `shipping_info` varchar(255) DEFAULT NULL COMMENT '鐗╂祦淇℃伅',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `pay_time` datetime DEFAULT NULL COMMENT '鏀?粯鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `order_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订单号',
+  `buyer_id` bigint NOT NULL COMMENT '买家ID',
+  `seller_id` bigint NOT NULL COMMENT '卖家ID',
+  `total_amount` decimal(10,2) NOT NULL COMMENT '总金额',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态: 0-待支付, 1-待发货, 2-待收货, 3-已完成, 4-已取消, 5-纠纷中',
+  `shipping_info` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '物流信息',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `pay_time` datetime DEFAULT NULL COMMENT '支付时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   UNIQUE KEY `order_no` (`order_no`),
   KEY `idx_buyer_id` (`buyer_id`),
   KEY `idx_seller_id` (`seller_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='璁㈠崟琛';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -325,17 +317,17 @@ DROP TABLE IF EXISTS `posts`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `posts` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `user_id` bigint NOT NULL COMMENT '鍙戝竷鑰匢D',
-  `title` varchar(100) NOT NULL COMMENT '鏍囬?',
-  `content` text NOT NULL COMMENT '鍐呭?',
-  `images` json DEFAULT NULL COMMENT '鍥剧墖鍒楄〃(JSON鏁扮粍)',
-  `status` tinyint NOT NULL DEFAULT '1' COMMENT '鐘舵?: 0-闅愯棌, 1-姝ｅ父',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `user_id` bigint NOT NULL COMMENT '发布者ID',
+  `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '标题',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '内容',
+  `images` json DEFAULT NULL COMMENT '图片列表(JSON数组)',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态: 0-隐藏, 1-正常',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='绀惧尯甯栧瓙琛';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='社区帖子表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -357,20 +349,20 @@ DROP TABLE IF EXISTS `products`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `products` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `seller_id` bigint NOT NULL COMMENT '鍗栧?ID',
-  `name` varchar(100) NOT NULL COMMENT '鍟嗗搧鍚嶇О',
-  `description` text COMMENT '鍟嗗搧鎻忚堪',
-  `price` decimal(10,2) NOT NULL COMMENT '浠锋牸',
-  `stock` int NOT NULL DEFAULT '0' COMMENT '搴撳瓨',
-  `images` json DEFAULT NULL COMMENT '鍟嗗搧鍥剧墖鍒楄〃(JSON鏁扮粍)',
-  `status` tinyint NOT NULL DEFAULT '1' COMMENT '鐘舵?: 0-涓嬫灦, 1-涓婃灦, 2-瀹氭椂涓婃灦',
-  `publish_time` datetime DEFAULT NULL COMMENT '瀹氭椂涓婃灦鏃堕棿',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `seller_id` bigint NOT NULL COMMENT '卖家ID',
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '商品名称',
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '商品描述',
+  `price` decimal(10,2) NOT NULL COMMENT '价格',
+  `stock` int NOT NULL DEFAULT '0' COMMENT '库存',
+  `images` json DEFAULT NULL COMMENT '商品图片列表(JSON数组)',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态: 0-下架, 1-上架, 2-定时上架',
+  `publish_time` datetime DEFAULT NULL COMMENT '定时上架时间',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   KEY `idx_seller_id` (`seller_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='鍟嗗搧琛';
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -392,19 +384,19 @@ DROP TABLE IF EXISTS `reviews`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `reviews` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `order_id` bigint NOT NULL COMMENT '璁㈠崟ID',
-  `product_id` bigint NOT NULL COMMENT '鍟嗗搧ID',
-  `buyer_id` bigint NOT NULL COMMENT '涔板?ID',
-  `seller_id` bigint NOT NULL COMMENT '鍗栧?ID',
-  `rating` tinyint NOT NULL DEFAULT '5' COMMENT '璇勫垎(1-5)',
-  `content` text COMMENT '璇勪环鍐呭?',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `order_id` bigint NOT NULL COMMENT '订单ID',
+  `product_id` bigint NOT NULL COMMENT '商品ID',
+  `buyer_id` bigint NOT NULL COMMENT '买家ID',
+  `seller_id` bigint NOT NULL COMMENT '卖家ID',
+  `rating` tinyint NOT NULL DEFAULT '5' COMMENT '评分(1-5)',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '评价内容',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   KEY `idx_product_id` (`product_id`),
   KEY `idx_seller_id` (`seller_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='璇勪环琛';
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='评价表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -426,21 +418,21 @@ DROP TABLE IF EXISTS `users`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) NOT NULL COMMENT '鐢ㄦ埛鍚',
-  `password` varchar(255) NOT NULL COMMENT '瀵嗙爜',
-  `role` tinyint NOT NULL DEFAULT '1' COMMENT '瑙掕壊: 1-涔板?, 2-鍗栧?, 3-绠＄悊鍛',
-  `nickname` varchar(50) DEFAULT NULL COMMENT '鏄电О',
-  `avatar` varchar(255) DEFAULT NULL COMMENT '澶村儚',
-  `phone` varchar(20) DEFAULT NULL COMMENT '鎵嬫満鍙',
-  `shop_name` varchar(100) DEFAULT NULL COMMENT '搴楅摵鍚?浠呭崠瀹舵湁鏁?',
-  `shop_description` text COMMENT '搴楅摵鎻忚堪',
-  `status` tinyint NOT NULL DEFAULT '1' COMMENT '鐘舵?: 0-绂佺敤, 1-姝ｅ父',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
-  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '閫昏緫鍒犻櫎',
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户名',
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '密码',
+  `role` tinyint NOT NULL DEFAULT '1' COMMENT '角色: 1-买家, 2-卖家, 3-管理员',
+  `nickname` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '昵称',
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '头像',
+  `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '手机号',
+  `shop_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '店铺名(仅卖家有效)',
+  `shop_description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '店铺描述',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态: 0-禁用, 1-正常',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='鐢ㄦ埛琛';
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -462,4 +454,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-06  3:01:52
+-- Dump completed on 2026-03-06 11:00:53
