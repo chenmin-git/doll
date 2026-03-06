@@ -34,4 +34,17 @@ public class NewsController {
     public Result<News> getById(@PathVariable Long id) {
         return Result.success(newsMapper.selectById(id));
     }
+
+    @PutMapping("/{id}")
+    public Result<News> update(@PathVariable Long id, @RequestBody News news) {
+        news.setId(id);
+        newsMapper.updateById(news);
+        return Result.success(news);
+    }
+
+    @DeleteMapping("/{id}")
+    public Result<Boolean> delete(@PathVariable Long id) {
+        newsMapper.deleteById(id);
+        return Result.success(true);
+    }
 }
