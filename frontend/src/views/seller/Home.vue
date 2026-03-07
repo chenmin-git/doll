@@ -14,6 +14,8 @@
           <el-menu-item index="after_sales">售后管理</el-menu-item>
           <el-menu-item index="reviews">评价管理</el-menu-item>
           <el-menu-item index="complaints">举报投诉</el-menu-item>
+          <el-menu-item index="news">资讯浏览</el-menu-item>
+          
           <!-- 个人中心入口已从菜单隐藏，仅通过右上角进入 -->
         </el-menu>
         <div class="user-actions">
@@ -447,6 +449,44 @@
           </el-table>
         </div>
 
+        <!-- ==================== 资讯浏览 ==================== -->
+        <div v-if="activeMenu === 'news'" class="page-section">
+          <div class="section-header">
+            <h3>📰 资讯浏览</h3>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-value">{{ newsList.length }}</div>
+              <div class="stat-label">总资讯数</div>
+            </div>
+          </div>
+
+          <el-table :data="newsList" class="custom-table" stripe>
+            <el-table-column label="封面图片" width="120">
+              <template #default="scope">
+                <el-image
+                  v-if="scope.row.coverImage"
+                  :src="scope.row.coverImage"
+                  style="width: 80px; height: 60px; border-radius: 8px"
+                  fit="cover"
+                  :preview-src-list="[scope.row.coverImage]"
+                />
+                <div v-else class="no-img">暂无</div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
+            <el-table-column label="发布时间" width="180">
+              <template #default="scope">{{ formatFullTime(scope.row.createTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="scope">
+                <el-button size="small" type="primary" plain @click="openNewsDetail(scope.row)">查看详情</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
         <!-- ==================== 个人中心 ==================== -->
         <div v-if="activeMenu === 'profile'" class="page-section">
           <div class="section-header">
@@ -678,6 +718,23 @@
       </template>
     </el-dialog>
 
+    <!-- ==================== 资讯详情弹窗 ==================== -->
+    <el-dialog v-model="newsDetailVisible" title="资讯详情" width="680px" class="custom-dialog">
+      <div v-if="selectedNews" style="max-height: 60vh; overflow-y: auto;">
+        <h2 style="text-align: center; margin-bottom: 10px">{{ selectedNews.title }}</h2>
+        <div style="text-align: center; color: #999; font-size: 13px; margin-bottom: 20px">
+          发布时间：{{ formatFullTime(selectedNews.createTime) }}
+        </div>
+        <div v-if="selectedNews.coverImage" style="text-align: center; margin-bottom: 20px">
+          <el-image :src="selectedNews.coverImage" style="max-width: 100%; border-radius: 8px" />
+        </div>
+        <div class="news-content" style="line-height: 1.6; color: #333;" v-html="selectedNews.content"></div>
+      </div>
+      <template #footer>
+        <el-button @click="newsDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <!-- ==================== 修改密码弹窗 ==================== -->
     <el-dialog v-model="passwordDialogVisible" title="修改密码" width="400px" class="custom-dialog">
       <el-form :model="passwordForm" label-width="80px">
@@ -718,6 +775,7 @@ const paidAuctionRevenue = ref(0)
 const reviews = ref([])
 const complaints = ref([])
 const afterSales = ref([])
+const newsList = ref([])
 
 // ============ 弹窗控制 ============
 const productDialogVisible = ref(false)
@@ -726,10 +784,12 @@ const complaintDialogVisible = ref(false)
 const reviewDetailVisible = ref(false)
 const complaintDetailVisible = ref(false)
 const passwordDialogVisible = ref(false)
+const newsDetailVisible = ref(false)
 const isEditProduct = ref(false)
 const editingProductId = ref(null)
 const selectedReview = ref(null)
 const selectedComplaint = ref(null)
+const selectedNews = ref(null)
 
 // ============ 表单 ============
 const productForm = reactive({
@@ -810,6 +870,7 @@ const handleMenuSelect = (index) => {
   else if (index === 'after_sales') loadAfterSales()
   else if (index === 'reviews') loadReviews()
   else if (index === 'complaints') loadComplaints()
+  else if (index === 'news') loadNews()
   else if (index === 'profile') loadProfile()
 }
 
@@ -1264,6 +1325,21 @@ const submitComplaintHandle = async () => {
   } catch (error) {
     ElMessage.error('处理失败')
   }
+}
+
+// ============ 资讯浏览 ============
+const loadNews = async () => {
+  try {
+    const res = await request.get('/news/list')
+    newsList.value = res.data || []
+  } catch (error) {
+    ElMessage.error('加载资讯失败')
+  }
+}
+
+const openNewsDetail = (news) => {
+  selectedNews.value = news
+  newsDetailVisible.value = true
 }
 
 // ============ 个人中心 ============

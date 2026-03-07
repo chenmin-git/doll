@@ -1,8 +1,11 @@
 # 进展报告 (2026-03-06)
 
 ## 当前阶段进展
+- **卖家端新增资讯浏览功能**
+  - **需求描述**：在卖家端导航栏新增“资讯浏览”入口。
+  - **解决方案**：在 `Home.vue` 中添加 `资讯浏览` 菜单项，并集成表格展示来自于 `GET /api/news/list` 接口返回的资讯列表，同时实现了点击查看资讯详情的弹窗逻辑。
 - **修复公告无法修改、删除的问题**
-  - **问题分析**：前端管理页面在编辑/删除公告时分别调用了 `PUT /news/{id}` 和 `DELETE /news/{id}` 接口，但后端 `NewsController.java` 中未实现这两个方法，导致旧公告只能增加不能修改。
+  - **问题分析**：前端管理页面在编辑/删除公告时分别调用了 `PUT /api/news/{id}` 和 `DELETE /api/news/{id}` 接口，但后端 `NewsController.java` 中未实现这两个方法，导致旧公告只能增加不能修改。
   - **解决方案**：在后端的 `NewsController` 中补充了 `@PutMapping("/{id}")` 和 `@DeleteMapping("/{id}")` 接口，并分别调用 `newsMapper.updateById()` 与 `deleteById()` 处理数据库记录。
 
 ## 下一步计划
