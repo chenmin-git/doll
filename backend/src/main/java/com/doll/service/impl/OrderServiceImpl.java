@@ -31,6 +31,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (product == null || product.getStock() < dto.getQuantity()) {
             throw new RuntimeException("商品不存在或库存不足");
         }
+        if (product.getStatus() != null && product.getStatus() != 1) {
+            throw new RuntimeException("商品已下架，无法购买");
+        }
 
         product.setStock(product.getStock() - dto.getQuantity());
         productMapper.updateById(product);

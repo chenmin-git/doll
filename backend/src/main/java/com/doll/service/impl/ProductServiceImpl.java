@@ -16,7 +16,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public IPage<Product> searchProducts(String keyword, Integer page, Integer size) {
         Page<Product> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(Product::getName, keyword).or().like(Product::getDescription, keyword);
+        wrapper.and(w -> w.like(Product::getName, keyword).or().like(Product::getDescription, keyword));
         wrapper.eq(Product::getStatus, 1);
         return page(pageParam, wrapper);
     }

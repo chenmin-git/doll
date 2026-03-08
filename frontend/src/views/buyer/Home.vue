@@ -98,13 +98,16 @@
           <div class="section-header"><h3>🛒 我的购物车</h3></div>
           <div v-if="cartItems.length > 0">
             <el-table :data="cartItems" class="custom-table" stripe @selection-change="handleCartSelectionChange">
-              <el-table-column type="selection" width="55" />
+              <el-table-column type="selection" width="55" :selectable="row => row.status === 1 && row.stock > 0" />
               <el-table-column label="商品信息" min-width="250">
                 <template #default="scope">
                   <div style="display: flex; align-items: center; gap: 12px; cursor: pointer" @click="openProductDetailById(scope.row.productId)">
                     <el-image v-if="scope.row.productImage" :src="scope.row.productImage" style="width: 60px; height: 60px; border-radius: 8px;" fit="cover" />
                     <div v-else style="width: 60px; height: 60px; border-radius: 8px; background: #f0f0f0; display:flex; align-items:center; justify-content:center; font-size:24px">🧸</div>
-                    <span style="font-weight: 600; color: #2d2520;">{{ scope.row.productName || `商品ID: ${scope.row.productId}` }}</span>
+                    <div style="display: flex; flex-direction: column;">
+                      <span style="font-weight: 600; color: #2d2520;">{{ scope.row.productName || `商品ID: ${scope.row.productId}` }}</span>
+                      <el-tag v-if="scope.row.status !== 1" type="danger" size="small" effect="plain" style="margin-top: 4px; width: fit-content;">已下架</el-tag>
+                    </div>
                   </div>
                 </template>
               </el-table-column>
@@ -1106,6 +1109,7 @@ const loadCart = async () => {
           item.productPrice = pRes.data.price
           item.sellerId = pRes.data.sellerId
           item.stock = pRes.data.stock
+          item.status = pRes.data.status
         }
       } catch (e) {
         console.error('获取商品详情失败', e)

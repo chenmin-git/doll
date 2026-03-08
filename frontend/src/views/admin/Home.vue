@@ -140,6 +140,12 @@
               </el-table-column>
             </el-table>
           </div>
+
+          <!-- 近半年数据趋势图 -->
+          <div class="dashboard-card full-width" style="margin-top: 24px;">
+            <h4>📈 近半年趋势分析</h4>
+            <div ref="chartRef" style="width: 100%; height: 400px;"></div>
+          </div>
         </div>
 
         <!-- ==================== 用户管理 ==================== -->
@@ -657,7 +663,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import * as echarts from 'echarts'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Setting, SwitchButton, Plus, Search, Edit, Delete, VideoPlay, Promotion, CircleClose, View, Lock, Check, EditPen } from '@element-plus/icons-vue'
@@ -688,6 +695,9 @@ const editingNewsId = ref(null)
 const selectedOrder = ref(null)
 const selectedAfterSale = ref(null)
 const selectedComplaint = ref(null)
+
+const chartRef = ref(null)
+let myChart = null
 
 // ============ 表单 ============
 const complaintHandleForm = reactive({ id: null, reason: '', result: '', images: '' })
@@ -754,6 +764,12 @@ const handleMenuSelect = (index) => {
   else if (index === 'after_sales') loadAfterSales()
   else if (index === 'complaints') loadComplaints()
   else if (index === 'news') loadNews()
+
+  if (index === 'dashboard') {
+    nextTick(() => {
+      initChart()
+    })
+  }
 }
 
 const isValidId = (id) => {
@@ -849,10 +865,106 @@ const loadOrders = async () => {
       }
     }
     allOrders.value = list
+
+    // 初始化/更新图表数据
+    nextTick(() => {
+      initChart()
+    })
   } catch (error) {
     ElMessage.error('加载订单失败')
   }
 }
+
+// ============ 图表初始化 ============
+const initChart = () => {
+  if (activeMenu.value !== 'dashboard' || !chartRef.value) return;
+  if (!myChart) {
+    myChart = echarts.init(chartRef.value);
+  }
+
+  // 生成近6个月的月份数组
+  const months = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+
+  // 统计近6个月的数据
+  const orderCounts = Array(6).fill(0);
+  const orderRevenues = Array(6).fill(0);
+
+  allOrders.value.forEach(order => {
+    if (!order.createTime) return;
+    const date = new Date(order.createTime);
+    const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const idx = months.indexOf(monthStr);
+    if (idx !== -1) {
+      if (order.status === 3) {
+         orderRevenues[idx] += Number(order.totalAmount || 0);
+      }
+      orderCounts[idx] += 1;
+    }
+  });
+
+  const fixedRevenues = orderRevenues.map(v => Number(v.toFixed(2)));
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' }
+    },
+    legend: {
+      data: ['订单数量', '交易金额(元)'],
+      bottom: 0
+    },
+    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+    xAxis: [
+      {
+        type: 'category',
+        data: months,
+        axisPointer: { type: 'shadow' }
+      }
+    ],
+    yAxis: [
+      {
+         type: 'value',
+         name: '订单数量',
+         min: 0,
+         minInterval: 1
+      },
+      {
+         type: 'value',
+         name: '交易金额',
+         min: 0,
+         axisLabel: { formatter: '¥{value}' }
+      }
+    ],
+    series: [
+      {
+        name: '订单数量',
+        type: 'line',
+        data: orderCounts,
+        smooth: true,
+        itemStyle: { color: '#e7a969' }
+      },
+      {
+        name: '交易金额(元)',
+        type: 'line',
+        yAxisIndex: 1,
+        data: fixedRevenues,
+        smooth: true,
+        itemStyle: { color: '#f5576c' }
+      }
+    ]
+  };
+
+  myChart.setOption(option);
+}
+
+window.addEventListener('resize', () => {
+  if (myChart) myChart.resize()
+})
 
 const loadProducts = async () => {
   try {

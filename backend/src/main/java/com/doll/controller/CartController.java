@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.doll.common.Result;
 import com.doll.entity.Cart;
 import com.doll.service.CartService;
+import com.doll.service.ProductService;
+import com.doll.entity.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -16,8 +18,15 @@ public class CartController {
     @Autowired
     private CartService cartService;
 
+    @Autowired
+    private ProductService productService;
+
     @PostMapping
     public Result<Cart> add(@RequestBody Cart cart) {
+        Product product = productService.getById(cart.getProductId());
+        if (product == null || product.getStatus() != 1) {
+            return Result.error("商品已下架或不存在");
+        }
         cartService.save(cart);
         return Result.success(cart);
     }
