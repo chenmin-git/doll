@@ -27,4 +27,13 @@ public class Product {
     
     @TableLogic
     private Integer isDeleted;
+
+    @TableField(exist = false)
+    private Integer salesCount;
+
+    @TableField(exist = false)
+    private Integer clickCount;
+
+    @TableField(exist = false)
+    private Integer hotScore;
 }

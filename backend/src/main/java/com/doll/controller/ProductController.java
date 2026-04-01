@@ -33,12 +33,21 @@ public class ProductController {
 
     @PostMapping
     public Result<Product> create(@RequestBody Product product) {
+        if (product.getStock() == null || product.getStock() < 0) {
+            return Result.error("库存不能小于0");
+        }
+        if (product.getStatus() == null) {
+            product.setStatus(1);
+        }
         productService.save(product);
         return Result.success(product);
     }
 
     @PutMapping("/{id}")
     public Result<Product> update(@PathVariable Long id, @RequestBody Product product) {
+        if (product.getStock() != null && product.getStock() < 0) {
+            return Result.error("库存不能小于0");
+        }
         product.setId(id);
         productService.updateById(product);
         return Result.success(product);
@@ -52,13 +61,23 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public Result<Product> getById(@PathVariable Long id) {
-        return Result.success(productService.getById(id));
+        Product product = productService.getById(id);
+        productService.enrichHotMetrics(product);
+        return Result.success(product);
+    }
+
+    @PostMapping("/{id}/click")
+    public Result<Void> recordClick(@PathVariable Long id) {
+        productService.recordProductClick(id);
+        return Result.success();
     }
 
     @GetMapping("/seller/{sellerId}")
     public Result<List<Product>> getBySeller(@PathVariable Long sellerId) {
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Product::getSellerId, sellerId).orderByDesc(Product::getCreateTime);
-        return Result.success(productService.list(wrapper));
+        List<Product> products = productService.list(wrapper);
+        productService.enrichHotMetrics(products);
+        return Result.success(products);
     }
 }

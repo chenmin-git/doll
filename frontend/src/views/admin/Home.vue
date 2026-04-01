@@ -459,7 +459,10 @@
         <!-- ==================== 内容管理 ==================== -->
         <div v-if="activeMenu === 'news'" class="page-section">
           <div class="section-header">
-            <h3>📰 内容管理</h3>
+            <div>
+              <h3>📰 内容管理</h3>
+              <div class="section-subtitle">公告封面会同步展示到买家商品选购页顶部轮播图</div>
+            </div>
             <el-button type="primary" @click="showAddNewsDialog" class="action-btn">
               <el-icon><Plus /></el-icon> 发布公告
             </el-button>
@@ -664,7 +667,7 @@
 
 <script setup>
 import * as echarts from 'echarts'
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Setting, SwitchButton, Plus, Search, Edit, Delete, VideoPlay, Promotion, CircleClose, View, Lock, Check, EditPen } from '@element-plus/icons-vue'
@@ -698,6 +701,7 @@ const selectedComplaint = ref(null)
 
 const chartRef = ref(null)
 let myChart = null
+let chartRenderTimer = null
 
 // ============ 表单 ============
 const complaintHandleForm = reactive({ id: null, reason: '', result: '', images: '' })
@@ -766,9 +770,7 @@ const handleMenuSelect = (index) => {
   else if (index === 'news') loadNews()
 
   if (index === 'dashboard') {
-    nextTick(() => {
-      initChart()
-    })
+    queueInitChart()
   }
 }
 
@@ -782,6 +784,8 @@ const isValidId = (id) => {
 // ============ 数据加载 ============
 const loadDashboard = async () => {
   await Promise.all([loadUsers(), loadOrders(), loadProducts(), loadComplaints(), loadNews(), loadAfterSales()])
+  await nextTick()
+  queueInitChart()
 }
 
 const loadUsers = async () => {
@@ -867,49 +871,42 @@ const loadOrders = async () => {
     allOrders.value = list
 
     // 初始化/更新图表数据
-    nextTick(() => {
-      initChart()
-    })
+    queueInitChart()
   } catch (error) {
     ElMessage.error('加载订单失败')
   }
 }
 
 // ============ 图表初始化 ============
-const initChart = () => {
-  if (activeMenu.value !== 'dashboard' || !chartRef.value) return;
-  if (!myChart) {
-    myChart = echarts.init(chartRef.value);
-  }
-
+const buildTrendOption = () => {
   // 生成近6个月的月份数组
-  const months = [];
-  const now = new Date();
+  const months = []
+  const now = new Date()
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
   // 统计近6个月的数据
-  const orderCounts = Array(6).fill(0);
-  const orderRevenues = Array(6).fill(0);
+  const orderCounts = Array(6).fill(0)
+  const orderRevenues = Array(6).fill(0)
 
   allOrders.value.forEach(order => {
-    if (!order.createTime) return;
-    const date = new Date(order.createTime);
-    const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const idx = months.indexOf(monthStr);
+    if (!order.createTime) return
+    const date = new Date(order.createTime)
+    const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const idx = months.indexOf(monthStr)
     if (idx !== -1) {
       if (order.status === 3) {
-         orderRevenues[idx] += Number(order.totalAmount || 0);
+         orderRevenues[idx] += Number(order.totalAmount || 0)
       }
-      orderCounts[idx] += 1;
+      orderCounts[idx] += 1
     }
-  });
+  })
 
-  const fixedRevenues = orderRevenues.map(v => Number(v.toFixed(2)));
+  const fixedRevenues = orderRevenues.map(v => Number(v.toFixed(2)))
 
-  const option = {
+  return {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'cross' }
@@ -957,14 +954,49 @@ const initChart = () => {
         itemStyle: { color: '#f5576c' }
       }
     ]
-  };
-
-  myChart.setOption(option);
+  }
 }
 
-window.addEventListener('resize', () => {
-  if (myChart) myChart.resize()
-})
+const initChart = (retry = 0) => {
+  if (activeMenu.value !== 'dashboard') return
+  const el = chartRef.value
+  if (!el) {
+    if (retry < 12) {
+      chartRenderTimer = setTimeout(() => initChart(retry + 1), 80)
+    }
+    return
+  }
+  if (el.clientWidth === 0 || el.clientHeight === 0) {
+    if (retry < 12) {
+      chartRenderTimer = setTimeout(() => initChart(retry + 1), 80)
+    }
+    return
+  }
+
+  if (!myChart) {
+    myChart = echarts.init(el)
+  } else if (myChart.getDom() !== el) {
+    myChart.dispose()
+    myChart = echarts.init(el)
+  }
+
+  myChart.clear()
+  myChart.setOption(buildTrendOption(), true)
+  myChart.resize()
+}
+
+const queueInitChart = () => {
+  if (chartRenderTimer) {
+    clearTimeout(chartRenderTimer)
+    chartRenderTimer = null
+  }
+  nextTick(() => {
+    initChart(0)
+  })
+}
+const handleChartResize = () => {
+  queueInitChart()
+}
 
 const loadProducts = async () => {
   try {
@@ -1292,8 +1324,48 @@ const handleLogout = () => {
   }).catch(() => {})
 }
 
+watch(
+  () => allOrders.value.length,
+  () => {
+    if (activeMenu.value === 'dashboard') {
+      queueInitChart()
+    }
+  }
+)
+
+watch(
+  () => activeMenu.value,
+  (menu) => {
+    if (menu === 'dashboard') {
+      queueInitChart()
+    }
+  }
+)
+
+watch(
+  () => chartRef.value,
+  (el) => {
+    if (el && activeMenu.value === 'dashboard') {
+      queueInitChart()
+    }
+  }
+)
+
 onMounted(() => {
+  window.addEventListener('resize', handleChartResize)
   loadDashboard()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleChartResize)
+  if (chartRenderTimer) {
+    clearTimeout(chartRenderTimer)
+    chartRenderTimer = null
+  }
+  if (myChart) {
+    myChart.dispose()
+    myChart = null
+  }
 })
 </script>
 
@@ -1405,6 +1477,12 @@ onMounted(() => {
   font-weight: 600;
   color: #2d2520;
   margin: 0;
+}
+
+.section-subtitle {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #a09088;
 }
 
 .action-btn {

@@ -27,16 +27,25 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Order createOrder(OrderDTO dto) {
+        if (dto.getQuantity() == null || dto.getQuantity() <= 0) {
+            throw new RuntimeException("购买数量必须大于0");
+        }
+
         Product product = productMapper.selectById(dto.getProductId());
-        if (product == null || product.getStock() < dto.getQuantity()) {
-            throw new RuntimeException("商品不存在或库存不足");
+        if (product == null) {
+            throw new RuntimeException("商品不存在");
         }
         if (product.getStatus() != null && product.getStatus() != 1) {
             throw new RuntimeException("商品已下架，无法购买");
         }
+        if (product.getStock() == null || product.getStock() <= 0) {
+            throw new RuntimeException("库存不足");
+        }
 
-        product.setStock(product.getStock() - dto.getQuantity());
-        productMapper.updateById(product);
+        int affectedRows = productMapper.decreaseStockIfEnough(dto.getProductId(), dto.getQuantity());
+        if (affectedRows <= 0) {
+            throw new RuntimeException("库存不足");
+        }
 
         Order order = new Order();
         order.setOrderNo(UUID.randomUUID().toString().replace("-", ""));

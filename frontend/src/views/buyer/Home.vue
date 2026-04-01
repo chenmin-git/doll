@@ -50,6 +50,18 @@
 
         <!-- ==================== 商品浏览 ==================== -->
         <div v-if="activeMenu === 'products'" class="page-section">
+          <div v-if="carouselItems.length > 0" class="product-carousel-wrap">
+            <el-carousel height="240px" indicator-position="outside" arrow="always">
+              <el-carousel-item v-for="item in carouselItems" :key="item.id">
+                <div class="product-carousel-item" @click="openNewsDetail(item)">
+                  <el-image :src="item.coverImage" fit="cover" class="product-carousel-image" />
+                  <div class="product-carousel-mask">
+                    <div class="carousel-title">{{ item.title }}</div>
+                  </div>
+                </div>
+              </el-carousel-item>
+            </el-carousel>
+          </div>
           <div class="search-bar">
             <el-input v-model="searchKeyword" placeholder="搜索心仪的玩偶..." class="custom-search" size="large" @keyup.enter="searchProducts">
               <template #prefix><el-icon><Search /></el-icon></template>
@@ -73,14 +85,14 @@
                   <div class="product-price">
                     <span class="price-sym">¥</span><span class="price-num">{{ product.price }}</span>
                   </div>
+                  <div class="product-hot-meta">
+                    销量 {{ product.salesCount || 0 }} · 点击 {{ product.clickCount || 0 }}
+                  </div>
                   <div class="product-actions">
                     <el-button type="text" circle @click.stop="toggleFavorite(product.id)">
                       <el-icon :color="isProductFavorited(product.id) ? '#f5576c' : '#9ea7b4'" size="20">
                         <component :is="isProductFavorited(product.id) ? 'StarFilled' : 'Star'" />
                       </el-icon>
-                    </el-button>
-                    <el-button type="text" circle @click.stop="reportProduct(product)">
-                      <el-icon color="#9ea7b4" size="20"><Warning /></el-icon>
                     </el-button>
                     <el-button type="primary" size="small" round class="cart-btn" @click.stop="addToCart(product.id)" :disabled="product.stock === 0">
                       <el-icon><ShoppingCart /></el-icon>
@@ -198,9 +210,10 @@
                     <el-button v-if="scope.row.status === 2" size="small" type="success" plain @click="confirmReceive(scope.row.id)">
                       <el-icon><Check /></el-icon> 确认收货
                     </el-button>
-                    <el-button v-if="scope.row.status === 3" size="small" type="primary" class="custom-btn review-btn" @click="openReviewDialog(scope.row)">
+                    <el-button v-if="scope.row.status === 3 && !isOrderReviewed(scope.row.id)" size="small" type="primary" class="custom-btn review-btn" @click="openReviewDialog(scope.row)">
                       <el-icon><ChatLineSquare /></el-icon> 发表评价
                     </el-button>
+                    <el-tag v-if="scope.row.status === 3 && isOrderReviewed(scope.row.id)" type="info" effect="plain" round size="small">已评价</el-tag>
                     <el-button v-if="scope.row.status >= 2" size="small" type="warning" plain class="custom-btn aftersale-btn" @click="openAfterSaleDialog(scope.row)">
                       <el-icon><RefreshRight /></el-icon> 申请售后
                     </el-button>
@@ -312,6 +325,11 @@
                   <el-image v-for="(img, i) in getImageList(post.images)" :key="i" :src="img" fit="cover" class="feed-img" lazy />
                 </div>
                 <div class="post-actions">
+                  <span class="action" :class="{ liked: isPostLiked(post.id) }" @click.stop="togglePostLike(post.id)">
+                    <el-icon v-if="isPostLiked(post.id)"><StarFilled /></el-icon>
+                    <el-icon v-else><Star /></el-icon>
+                    点赞
+                  </span>
                   <span class="action"><el-icon><ChatLineRound /></el-icon> 评论</span>
                 </div>
               </div>
@@ -324,7 +342,6 @@
         <div v-if="activeMenu === 'complaints'" class="page-section">
           <div class="section-header">
             <h3>🚨 举报投诉管理</h3>
-            <el-button type="primary" class="action-btn" @click="showComplaintDialog = true"><el-icon><Plus /></el-icon> 提交投诉</el-button>
           </div>
           <el-table :data="myComplaints" class="custom-table" stripe>
             <el-table-column prop="id" label="ID" width="60" />
@@ -532,10 +549,6 @@
                     {{ isProductFavorited(selectedProduct.id) ? '已收藏' : '收藏' }}
                   </span>
                 </el-button>
-                <el-button type="text" @click="reportProduct(selectedProduct)">
-                  <el-icon color="#9ea7b4" size="20"><Warning /></el-icon>
-                  <span style="color: #9ea7b4; marginLeft: '4px'">举报</span>
-                </el-button>
               </div>
             </div>
             <p>{{ selectedProduct.description || '主人很懒，没有写描述~' }}</p>
@@ -599,44 +612,6 @@
       <template #footer>
         <el-button @click="showPostDialog = false">取消</el-button>
         <el-button type="primary" @click="submitPost">发布</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ==================== 投诉弹窗 ==================== -->
-    <el-dialog v-model="showComplaintDialog" title="提交投诉" width="450px" class="custom-dialog">
-      <el-form :model="complaintForm" label-width="90px">
-        <el-form-item label="投诉类型">
-          <el-radio-group v-model="complaintForm.type">
-            <el-radio :value="1">卖家</el-radio>
-            <el-radio :value="2">商品</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item :label="complaintForm.type === 1 ? '被投诉卖家' : '被投诉商品'">
-          <el-input v-model="complaintForm.targetName" readonly placeholder="请从商品或详情页发起投诉" />
-          <div style="font-size: 12px; color: #999; margin-top: 4px;">ID: {{ complaintForm.targetId }}</div>
-        </el-form-item>
-        <el-form-item label="投诉原因"><el-input v-model="complaintForm.reason" type="textarea" :rows="3" placeholder="请详细描述投诉原因" /></el-form-item>
-        <el-form-item label="凭证图片">
-          <el-upload
-            action="/api/upload"
-            :headers="uploadHeaders"
-            list-type="picture-card"
-            multiple
-            :limit="5"
-            :file-list="complaintFileList"
-            :on-success="handleComplaintImageSuccess"
-            :on-remove="handleComplaintImageRemove"
-          >
-            <el-icon><Plus /></el-icon>
-            <template #tip>
-              <div style="font-size: 12px; color: #999; margin-top: 8px;">最多上传5张图片，建议尺寸 800x800</div>
-            </template>
-          </el-upload>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showComplaintDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitComplaint">提交投诉</el-button>
       </template>
     </el-dialog>
 
@@ -782,13 +757,15 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, ShoppingCart, List, ChatLineSquare, User, Plus, Star, StarFilled, Warning, CreditCard, Check, RefreshRight, CircleClose, Location, Close, Shop, CaretBottom, EditPen, HomeFilled, ChatDotRound, Notification, QuestionFilled, CircleCheckFilled, ChatLineRound } from '@element-plus/icons-vue'
+import { Search, ShoppingCart, List, ChatLineSquare, User, Plus, Star, StarFilled, CreditCard, Check, RefreshRight, CircleClose, Location, Close, Shop, CaretBottom, EditPen, HomeFilled, ChatDotRound, Notification, QuestionFilled, CircleCheckFilled, ChatLineRound } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 
+const route = useRoute()
 const router = useRouter()
 const auctions = ref([])
+const validMenus = ['products', 'cart', 'orders', 'community', 'auctions', 'complaints', 'news', 'profile']
 
 
 const formatFullTime = (timeStr) => {
@@ -810,6 +787,8 @@ const afterSales = ref([])
 const posts = ref([])
 const myComplaints = ref([])
 const newsList = ref([])
+const carouselItems = ref([])
+const reviewedOrderIds = ref([])
 const favoriteProducts = ref([])
 const favoriteIds = computed(() => favoriteProducts.value.map(p => p.id))
 const isProductFavorited = (id) => favoriteIds.value.includes(id)
@@ -822,7 +801,6 @@ const productDetailVisible = ref(false)
 const reviewDialogVisible = ref(false)
 const afterSaleDialogVisible = ref(false)
 const showPostDialog = ref(false)
-const showComplaintDialog = ref(false)
 const checkoutDialogVisible = ref(false)
 const postDetailVisible = ref(false)
 const newsDetailVisible = ref(false)
@@ -848,12 +826,10 @@ const directBuyProduct = ref(null)
 const reviewForm = reactive({ orderId: null, productId: null, buyerId: userId.value, sellerId: null, rating: 5, content: '' })
 const afterSaleForm = reactive({ orderId: null, buyerId: userId.value, reason: '', description: '' })
 const postForm = reactive({ title: '', content: '', imageUrl: '' })
-const complaintForm = reactive({ targetId: '', targetName: '', type: 1, reason: '', submitterId: userId.value, images: '' })
 const profileForm = reactive({ nickname: '', phone: '', avatar: '' })
 const addressForm = reactive({ receiver: '', phone: '', address: '' })
 const defaultAddress = reactive({ receiver: '', phone: '', province: '', city: '', district: '', detail: '', address: '', isDefault: true })
 const postFileList = ref([])
-const complaintFileList = ref([])
 const passwordForm = reactive({
   oldPassword: '',
   newPassword: '',
@@ -885,25 +861,6 @@ const handlePostImageRemove = (file, fileList) => {
   postForm.imageUrl = ''
 }
 
-const handleComplaintImageSuccess = (res, file, fileList) => {
-  if (res.code === 200) {
-    updateComplaintImages(fileList)
-  } else {
-    ElMessage.error(res.message || '上传失败')
-  }
-}
-
-const handleComplaintImageRemove = (file, fileList) => {
-  updateComplaintImages(fileList)
-}
-
-const updateComplaintImages = (fileList) => {
-  const images = fileList
-    .filter(f => f.response && f.response.code === 200)
-    .map(f => f.response.data)
-  complaintForm.images = JSON.stringify(images)
-}
-
 // ============ 计算属性 ============
 const filteredMyOrders = computed(() => {
   if (orderTabFilter.value === '' || orderTabFilter.value === null) return myOrders.value
@@ -928,6 +885,7 @@ const handleUserCommand = (command) => {
     handleLogout()
   } else {
     activeMenu.value = 'profile'
+    syncMenuQuery('profile')
     if (command === 'profile') profileActiveTab.value = 'info'
     else if (command === 'my_address') profileActiveTab.value = 'address'
     else if (command === 'my_posts') profileActiveTab.value = 'posts'
@@ -940,17 +898,27 @@ const handleUserCommand = (command) => {
   }
 }
 
+const syncMenuQuery = (menu) => {
+  const query = menu && menu !== 'products' ? { menu } : {}
+  router.replace({ path: '/buyer', query }).catch(() => {})
+}
+
+const loadMenuData = (menu) => {
+  if (menu === 'products') searchProducts()
+  else if (menu === 'cart') loadCart()
+  else if (menu === 'orders') { loadOrders(); loadAfterSales() }
+  else if (menu === 'community') loadPosts()
+  else if (menu === 'auctions') loadAuctions()
+  else if (menu === 'complaints') loadMyComplaints()
+  else if (menu === 'news') loadNews()
+  else if (menu === 'profile') loadProfile()
+}
+
 // ============ 菜单切换 ============
 const handleMenuSelect = (index) => {
   activeMenu.value = index
-  if (index === 'products') searchProducts()
-  else if (index === 'cart') loadCart()
-  else if (index === 'orders') { loadOrders(); loadAfterSales() }
-  else if (index === 'community') loadPosts()
-  else if (index === 'auctions') loadAuctions()
-  else if (index === 'complaints') loadMyComplaints()
-  else if (index === 'news') loadNews()
-  else if (index === 'profile') loadProfile()
+  syncMenuQuery(index)
+  loadMenuData(index)
 }
 
 // ============ 拍卖互动 ============
@@ -1041,19 +1009,20 @@ const searchProducts = async () => {
   } catch { ElMessage.error('搜索失败') }
 }
 const openProductDetail = (p) => { 
-  router.push(`/product/${p.id}`) 
+  router.push({ path: `/product/${p.id}`, query: { fromMenu: activeMenu.value } }) 
 }
 const openProductDetailById = async (pid) => {
-  router.push(`/product/${pid}`)
+  router.push({ path: `/product/${pid}`, query: { fromMenu: activeMenu.value } })
 }
 const addToCart = async (productId) => {
   try {
-    await request.post('/cart', { productId, quantity: 1, userId: userId.value })
-    ElMessage.success('已加入购物车')
+    const res = await request.post('/cart', { productId, quantity: 1, userId: userId.value })
+    const quantity = res.data?.quantity
+    ElMessage.success(quantity ? `已加入购物车，当前数量 ${quantity}` : '已加入购物车')
   } catch { ElMessage.error('添加失败') }
 }
 
-// ============ 收藏与举报 ============
+// ============ 收藏 ============
 const loadFavorites = async () => {
   try {
     const res = await request.get(`/favorite/user/${userId.value}`)
@@ -1084,14 +1053,6 @@ const toggleFavorite = async (productId) => {
   } catch (err) {
     ElMessage.error('操作失败')
   }
-}
-
-const reportProduct = (product) => {
-  complaintForm.type = 2
-  complaintForm.targetId = product.id
-  complaintForm.targetName = product.name
-  complaintForm.reason = ''
-  showComplaintDialog.value = true
 }
 
 // ============ 购物车 ============
@@ -1216,6 +1177,7 @@ const confirmCheckout = async () => {
     ElMessage.success('下单支付成功！')
     checkoutDialogVisible.value = false
     activeMenu.value = 'orders'
+    syncMenuQuery('orders')
     loadOrders()
   } catch (err) {
     ElMessage.error('下单失败，可能库存不足')
@@ -1225,6 +1187,18 @@ const confirmCheckout = async () => {
 }
 
 // ============ 订单管理 ============
+const loadReviewedOrders = async () => {
+  try {
+    const res = await request.get(`/review/buyer/${userId.value}`)
+    const list = res.data || []
+    reviewedOrderIds.value = [...new Set(list.map(r => String(r.orderId)))]
+  } catch {
+    reviewedOrderIds.value = []
+  }
+}
+
+const isOrderReviewed = (orderId) => reviewedOrderIds.value.includes(String(orderId))
+
 const loadOrders = async () => {
   try {
     const res = await request.get(`/order/buyer/${userId.value}`)
@@ -1255,6 +1229,7 @@ const loadOrders = async () => {
     }
     
     myOrders.value = orders
+    await loadReviewedOrders()
   } catch (err) {
     ElMessage.error('加载订单失败')
   }
@@ -1289,6 +1264,10 @@ const cancelOrder = async (id) => {
 
 // ============ 评价 ============
 const openReviewDialog = (order) => {
+  if (isOrderReviewed(order.id)) {
+    ElMessage.warning('该订单已评价，不能重复提交')
+    return
+  }
   reviewForm.orderId = order.id
   reviewForm.sellerId = order.sellerId
   reviewForm.buyerId = userId.value
@@ -1304,6 +1283,7 @@ const submitReview = async () => {
   try {
     await request.post('/review', reviewForm)
     ElMessage.success('评价成功')
+    reviewedOrderIds.value = [...new Set([...reviewedOrderIds.value, String(reviewForm.orderId)])]
     reviewDialogVisible.value = false
     loadOrders() // 刷新订单列表以更新状态（如果评价后状态改变）
   } catch { ElMessage.error('评价失败') }
@@ -1369,34 +1349,99 @@ const submitAfterSale = async () => {
 // ============ 互动社区 ============
 const postComments = ref([])
 const newComment = ref('')
-const favoritedPostIds = ref([])
-// 使用Map存储每个帖子的评论，key是postId，value是评论数组
-const postCommentsMap = ref(new Map())
-const postCommentsStorageKey = computed(() => `doll_post_comments_${userId.value || 'guest'}`)
+const likedPostIds = ref([])
+const postCommentsStoragePrefix = 'doll_post_comments_'
+const postLikesStorageKey = computed(() => `doll_post_likes_${userId.value || 'guest'}`)
 
 const normalizePostId = (postId) => String(postId)
 
-const loadPersistedPostComments = () => {
+const getCommentUniqueKey = (comment) => {
+  if (!comment) return ''
+  return `${comment.userId || ''}__${String(comment.content || '').trim()}`
+}
+
+const dedupeAndSortComments = (comments) => {
+  const list = Array.isArray(comments) ? comments : []
+  const uniqueMap = new Map()
+  list.forEach(item => {
+    if (!item || !item.content) return
+    const key = item.id ? `id_${item.id}` : `${item.userId || 'u'}_${item.createTime || ''}_${item.content}`
+    uniqueMap.set(key, item)
+  })
+  return Array.from(uniqueMap.values()).sort((a, b) => new Date(b.createTime || 0) - new Date(a.createTime || 0))
+}
+
+const getLegacyCommentsByPostId = (postId) => {
+  const targetKey = normalizePostId(postId)
+  const merged = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (!key || !key.startsWith(postCommentsStoragePrefix)) continue
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw)
+      const list = parsed?.[targetKey]
+      if (Array.isArray(list)) merged.push(...list)
+    } catch (e) {}
+  }
+  return dedupeAndSortComments(merged)
+}
+
+const loadPostComments = async (postId) => {
+  let serverComments = []
   try {
-    const raw = localStorage.getItem(postCommentsStorageKey.value)
+    const res = await request.get(`/post/comment/${postId}`)
+    serverComments = Array.isArray(res.data) ? res.data : []
+  } catch (e) {
+    serverComments = []
+  }
+
+  const legacyComments = getLegacyCommentsByPostId(postId)
+  const serverKeySet = new Set(serverComments.map(item => getCommentUniqueKey(item)).filter(Boolean))
+  let hasSync = false
+  for (const legacy of legacyComments) {
+    const content = String(legacy?.content || '').trim()
+    if (!content) continue
+    const uniqueKey = getCommentUniqueKey(legacy)
+    if (!uniqueKey || serverKeySet.has(uniqueKey)) continue
+    try {
+      await request.post('/post/comment', {
+        postId,
+        userId: legacy.userId || userId.value,
+        content
+      })
+      serverKeySet.add(uniqueKey)
+      hasSync = true
+    } catch (e) {}
+  }
+
+  if (hasSync) {
+    try {
+      const refetch = await request.get(`/post/comment/${postId}`)
+      serverComments = Array.isArray(refetch.data) ? refetch.data : serverComments
+    } catch (e) {}
+  }
+
+  postComments.value = dedupeAndSortComments([...serverComments, ...legacyComments])
+}
+
+const loadPersistedPostLikes = () => {
+  try {
+    const raw = localStorage.getItem(postLikesStorageKey.value)
     if (!raw) {
-      postCommentsMap.value = new Map()
+      likedPostIds.value = []
       return
     }
     const parsed = JSON.parse(raw)
-    const entries = Object.entries(parsed).map(([key, value]) => [String(key), Array.isArray(value) ? value : []])
-    postCommentsMap.value = new Map(entries)
+    likedPostIds.value = Array.isArray(parsed) ? parsed.map(id => String(id)) : []
   } catch (e) {
-    postCommentsMap.value = new Map()
+    likedPostIds.value = []
   }
 }
 
-const persistPostComments = () => {
-  const obj = {}
-  for (const [key, value] of postCommentsMap.value.entries()) {
-    obj[String(key)] = Array.isArray(value) ? value : []
-  }
-  localStorage.setItem(postCommentsStorageKey.value, JSON.stringify(obj))
+const persistPostLikes = () => {
+  localStorage.setItem(postLikesStorageKey.value, JSON.stringify(likedPostIds.value))
 }
 
 const loadPosts = async () => {
@@ -1409,39 +1454,29 @@ const loadPosts = async () => {
 const openPostDetail = async (post) => {
   selectedPost.value = post
   postDetailVisible.value = true
-  // 从Map中加载该帖子的评论
-  const postKey = normalizePostId(post.id)
-  if (postCommentsMap.value.has(postKey)) {
-    postComments.value = postCommentsMap.value.get(postKey)
-  } else {
-    postComments.value = []
-  }
+  await loadPostComments(post.id)
   newComment.value = ''
 }
 
-const isPostFavorited = (postId) => {
-  return favoritedPostIds.value.includes(postId)
+const isPostLiked = (postId) => {
+  return likedPostIds.value.includes(String(postId))
 }
 
-const togglePostFavorite = async (postId) => {
+const togglePostLike = async (postId) => {
   if (!userId.value) {
     ElMessage.warning('请先登录')
     return
   }
-  try {
-    // 这里使用favorite接口，type可以扩展支持帖子收藏
-    // 暂时使用简单的本地状态管理
-    const index = favoritedPostIds.value.indexOf(postId)
-    if (index > -1) {
-      favoritedPostIds.value.splice(index, 1)
-      ElMessage.success('已取消收藏')
-    } else {
-      favoritedPostIds.value.push(postId)
-      ElMessage.success('收藏成功')
-    }
-  } catch (error) {
-    ElMessage.error('操作失败')
+  const key = String(postId)
+  const index = likedPostIds.value.indexOf(key)
+  if (index > -1) {
+    likedPostIds.value.splice(index, 1)
+    ElMessage.success('已取消点赞')
+  } else {
+    likedPostIds.value.push(key)
+    ElMessage.success('点赞成功')
   }
+  persistPostLikes()
 }
 
 const submitPostComment = async () => {
@@ -1454,24 +1489,12 @@ const submitPostComment = async () => {
     return
   }
   try {
-    // 创建评论对象
-    const comment = {
-      id: Date.now(),
+    await request.post('/post/comment', {
+      postId: selectedPost.value.id,
       userId: userId.value,
-      content: newComment.value,
-      createTime: new Date().toISOString()
-    }
-
-    // 保存到Map中并持久化，避免重新进入帖子后评论丢失
-    const postKey = normalizePostId(selectedPost.value.id)
-    if (!postCommentsMap.value.has(postKey)) {
-      postCommentsMap.value.set(postKey, [])
-    }
-    const list = postCommentsMap.value.get(postKey)
-    list.unshift(comment)
-    postComments.value = list
-    persistPostComments()
-
+      content: newComment.value.trim()
+    })
+    await loadPostComments(selectedPost.value.id)
     newComment.value = ''
     ElMessage.success('评论成功')
   } catch (error) {
@@ -1515,22 +1538,13 @@ const loadMyComplaints = async () => {
     myComplaints.value = list
   } catch { myComplaints.value = [] }
 }
-const submitComplaint = async () => {
-  try {
-    await request.post('/complaint', complaintForm)
-    ElMessage.success('投诉已提交')
-    showComplaintDialog.value = false
-    Object.assign(complaintForm, { targetId: '', targetName: '', type: 2, reason: '', images: '' })
-    complaintFileList.value = []
-    loadMyComplaints()
-  } catch { ElMessage.error('提交失败') }
-}
 
 // ============ 资讯浏览 ============
 const loadNews = async () => {
   try {
     const res = await request.get('/news/list')
-    newsList.value = res.data
+    newsList.value = res.data || []
+    carouselItems.value = newsList.value.filter(item => item.coverImage).slice(0, 6)
   } catch { ElMessage.error('加载资讯失败') }
 }
 const openNewsDetail = (news) => {
@@ -1608,10 +1622,16 @@ const submitPasswordChange = async () => {
 
 
 onMounted(() => { 
-  loadPersistedPostComments()
-  searchProducts() 
+  loadPersistedPostLikes()
   loadDefaultAddress()
   loadFavorites()
+  loadNews()
+
+  const routeMenu = String(route.query.menu || '').trim()
+  if (validMenus.includes(routeMenu)) {
+    activeMenu.value = routeMenu
+  }
+  loadMenuData(activeMenu.value)
 })
 </script>
 
@@ -1649,6 +1669,18 @@ onMounted(() => {
 .action-btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,87,108,0.3); }
 
 /* ====== Search ====== */
+.product-carousel-wrap { margin-bottom: 24px; }
+.product-carousel-item { position: relative; height: 240px; border-radius: 16px; overflow: hidden; cursor: pointer; }
+.product-carousel-image { width: 100%; height: 100%; }
+.product-carousel-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.05));
+}
+.carousel-title { color: #fff; font-size: 18px; font-weight: 600; line-height: 1.4; }
 .search-bar { display: flex; justify-content: center; margin-bottom: 28px; }
 .custom-search { width: 560px; }
 .custom-search :deep(.el-input__wrapper) { border-radius: 24px 0 0 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
@@ -1673,6 +1705,7 @@ onMounted(() => {
 .product-name { margin: 0 0 6px; font-size: 15px; color: #2d2520; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .product-desc { margin: 0 0 12px; font-size: 12px; color: #a09088; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .product-footer { display: flex; align-items: center; justify-content: space-between; }
+.product-hot-meta { color: #a09088; font-size: 12px; white-space: nowrap; margin: 0 8px; }
 .product-price { display: flex; align-items: baseline; }
 .price-sym { color: #f5576c; font-size: 13px; font-weight: 700; }
 .price-num { color: #f5576c; font-size: 22px; font-weight: 700; margin-left: 2px; }
@@ -1747,6 +1780,7 @@ onMounted(() => {
 .post-actions { display: flex; gap: 24px; padding-top: 16px; border-top: 1px dashed #f0ebe8; }
 .post-actions .action { font-size: 13px; color: #a09088; display: flex; align-items: center; gap: 6px; }
 .post-actions .action:hover { color: #f5576c; }
+.post-actions .action.liked { color: #f5576c; font-weight: 600; }
 
 /* ====== Post Detail Dialog ====== */
 .post-detail-content { padding: 10px; }

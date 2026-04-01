@@ -8,4 +8,6 @@ public interface ReviewService extends IService<Review> {
     List<Review> getByProductId(Long productId);
 
     List<Review> getBySellerId(Long sellerId);
+
+    List<Review> getByBuyerId(Long buyerId);
 }

@@ -2,9 +2,9 @@
   <div class="product-detail-page">
     <el-container>
       <el-header class="custom-header">
-        <div class="logo" @click="router.push('/buyer')" style="cursor: pointer;">
+        <div class="logo" @click="goBack" style="cursor: pointer;">
           <el-icon class="logo-icon"><ArrowLeft /></el-icon>
-          <h2>返回首页</h2>
+          <h2>返回上一页</h2>
         </div>
       </el-header>
 
@@ -178,6 +178,10 @@ const route = useRoute()
 const router = useRouter()
 const userId = ref(localStorage.getItem('userId'))
 const productId = route.params.id
+const fromMenu = computed(() => {
+  const menu = String(route.query.fromMenu || '').trim()
+  return menu || 'products'
+})
 
 const product = ref(null)
 const reviews = ref([])
@@ -197,6 +201,14 @@ const showAddressForm = ref(false)
 const checkoutTotalAmount = computed(() => {
   return checkoutItems.value.reduce((sum, item) => sum + (item.productPrice || 0) * item.quantity, 0).toFixed(2)
 })
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+    return
+  }
+  router.push({ path: '/buyer', query: fromMenu.value ? { menu: fromMenu.value } : {} })
+}
 
 // 工具函数
 const getFirstImage = (images) => {
@@ -227,6 +239,7 @@ const formatTime = (ts) => {
 // 加载商品详情
 const loadProduct = async () => {
   try {
+    await request.post(`/product/${productId}/click`)
     const res = await request.get(`/product/${productId}`)
     product.value = res.data
     
@@ -301,12 +314,13 @@ const addToCart = async () => {
     return
   }
   try {
-    await request.post('/cart', { 
+    const res = await request.post('/cart', { 
       productId: product.value.id, 
       quantity: 1, 
       userId: userId.value 
     })
-    ElMessage.success('已加入购物车')
+    const quantity = res.data?.quantity
+    ElMessage.success(quantity ? `已加入购物车，当前数量 ${quantity}` : '已加入购物车')
   } catch (error) {
     ElMessage.error('添加失败')
   }
@@ -437,7 +451,7 @@ const confirmCheckout = async () => {
       }
       ElMessage.success('下单支付成功！')
       checkoutDialogVisible.value = false
-      router.push('/buyer')
+      router.push({ path: '/buyer', query: { menu: 'orders' } })
     } catch (err) {
       ElMessage.error('下单失败，可能库存不足')
     } finally {
@@ -485,7 +499,7 @@ const confirmCheckout = async () => {
       }
       ElMessage.success('下单支付成功！')
       checkoutDialogVisible.value = false
-      router.push('/buyer')
+      router.push({ path: '/buyer', query: { menu: 'orders' } })
     } catch (err) {
       ElMessage.error('下单失败，可能库存不足')
     } finally {

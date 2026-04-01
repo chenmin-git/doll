@@ -35,6 +35,13 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
         return list;
     }
 
+    @Override
+    public List<Review> getByBuyerId(Long buyerId) {
+        LambdaQueryWrapper<Review> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Review::getBuyerId, buyerId);
+        return this.list(wrapper);
+    }
+
     private void populateUserInfo(List<Review> reviews) {
         for (Review review : reviews) {
             User user = userService.getById(review.getBuyerId());

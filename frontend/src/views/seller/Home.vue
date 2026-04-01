@@ -14,6 +14,7 @@
           <el-menu-item index="after_sales">售后管理</el-menu-item>
           <el-menu-item index="reviews">评价管理</el-menu-item>
           <el-menu-item index="complaints">举报投诉</el-menu-item>
+          <el-menu-item index="community">互动社区</el-menu-item>
           <el-menu-item index="news">资讯浏览</el-menu-item>
           
           <!-- 个人中心入口已从菜单隐藏，仅通过右上角进入 -->
@@ -449,6 +450,49 @@
           </el-table>
         </div>
 
+        <!-- ==================== 互动社区 ==================== -->
+        <div v-if="activeMenu === 'community'" class="page-section">
+          <div class="section-header">
+            <h3>🧸 互动社区</h3>
+            <el-button type="primary" @click="showPostDialog = true" class="action-btn">
+              <el-icon><Plus /></el-icon> 发布动态
+            </el-button>
+          </div>
+
+          <div class="posts-feed">
+            <div v-for="post in posts" :key="post.id" class="simple-post-card" @click="openPostDetail(post)">
+              <div class="post-user-info">
+                <el-avatar :size="32">{{ post.userId }}</el-avatar>
+                <div class="user-meta">
+                  <span class="user-id">用户#{{ post.userId }}</span>
+                  <span class="post-date">{{ formatFullTime(post.createTime) }}</span>
+                </div>
+              </div>
+              <h4 class="post-title">{{ post.title }}</h4>
+              <p class="post-text">{{ post.content }}</p>
+              <div v-if="getImageList(post.images).length" class="post-media">
+                <el-image
+                  v-for="(img, index) in getImageList(post.images)"
+                  :key="index"
+                  :src="img"
+                  fit="cover"
+                  class="feed-img"
+                  :preview-src-list="getImageList(post.images)"
+                  :initial-index="index"
+                />
+              </div>
+              <div class="post-actions">
+                <span class="action" :class="{ liked: isPostLiked(post.id) }" @click.stop="togglePostLike(post.id)">
+                  <el-icon v-if="isPostLiked(post.id)"><StarFilled /></el-icon>
+                  <el-icon v-else><Star /></el-icon>
+                  {{ isPostLiked(post.id) ? '已点赞' : '点赞' }}
+                </span>
+              </div>
+            </div>
+            <el-empty v-if="posts.length === 0" description="社区空空如也，快来发布第一条动态吧" />
+          </div>
+        </div>
+
         <!-- ==================== 资讯浏览 ==================== -->
         <div v-if="activeMenu === 'news'" class="page-section">
           <div class="section-header">
@@ -631,6 +675,85 @@
       </template>
     </el-dialog>
 
+    <!-- ==================== 发布动态弹窗 ==================== -->
+    <el-dialog v-model="showPostDialog" title="发布动态" width="500px" class="custom-dialog">
+      <el-form :model="postForm" label-width="80px">
+        <el-form-item label="标题">
+          <el-input v-model="postForm.title" placeholder="请输入标题" />
+        </el-form-item>
+        <el-form-item label="内容">
+          <el-input v-model="postForm.content" type="textarea" :rows="4" placeholder="分享你的玩偶动态..." />
+        </el-form-item>
+        <el-form-item label="上传图片">
+          <el-upload
+            action="/api/upload"
+            :headers="uploadHeaders"
+            list-type="picture-card"
+            :limit="1"
+            :file-list="postFileList"
+            :on-success="handlePostImageSuccess"
+            :on-remove="handlePostImageRemove"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showPostDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitPost">发布</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ==================== 帖子详情弹窗 ==================== -->
+    <el-dialog v-model="postDetailVisible" title="帖子详情" width="700px" class="custom-dialog">
+      <div v-if="selectedPost" style="max-height: 60vh; overflow-y: auto;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+          <el-avatar :size="40">{{ selectedPost.userId }}</el-avatar>
+          <div>
+            <div style="font-size:15px; font-weight:600; color:#2d2520;">用户#{{ selectedPost.userId }}</div>
+            <div style="font-size:12px; color:#a09088;">{{ formatFullTime(selectedPost.createTime) }}</div>
+          </div>
+        </div>
+        <h3 style="margin:0 0 12px; color:#2d2520;">{{ selectedPost.title }}</h3>
+        <p style="margin:0 0 16px; color:#5a4a42; line-height:1.8; white-space:pre-wrap;">{{ selectedPost.content }}</p>
+        <div v-if="getImageList(selectedPost.images).length" style="display:flex; flex-direction:column; gap:12px;">
+          <el-image
+            v-for="(img, index) in getImageList(selectedPost.images)"
+            :key="index"
+            :src="img"
+            style="width:100%; border-radius:10px;"
+            :preview-src-list="getImageList(selectedPost.images)"
+            :initial-index="index"
+          />
+        </div>
+
+        <el-divider />
+        <div class="comments-section">
+          <h4 style="margin: 0 0 12px; color: #2d2520;">💬 评论 ({{ postComments.length }})</h4>
+          <div class="comments-list">
+            <div
+              v-for="comment in postComments"
+              :key="comment.id"
+              style="padding: 12px 0; border-bottom: 1px dashed #f0ebe8;"
+            >
+              <div style="display: flex; gap: 10px;">
+                <el-avatar :size="32">{{ comment.userId }}</el-avatar>
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; color: #2d2520; margin-bottom: 2px;">用户 #{{ comment.userId }}</div>
+                  <div style="color: #5a4a42; line-height: 1.6; margin-bottom: 6px;">{{ comment.content }}</div>
+                  <div style="font-size: 12px; color: #a09088;">{{ formatFullTime(comment.createTime) }}</div>
+                </div>
+              </div>
+            </div>
+            <el-empty v-if="postComments.length === 0" description="暂无评论" :image-size="80" />
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="postDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <!-- ==================== 处理投诉弹窗 ==================== -->
     <el-dialog v-model="complaintDialogVisible" title="处理举报投诉" width="450px" class="custom-dialog">
       <el-form :model="complaintHandleForm" label-width="90px">
@@ -760,7 +883,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Shop, SwitchButton, Plus, Delete, CaretBottom, User } from '@element-plus/icons-vue'
+import { Shop, SwitchButton, Plus, Delete, CaretBottom, User, Star, StarFilled } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 
 const router = useRouter()
@@ -776,6 +899,10 @@ const reviews = ref([])
 const complaints = ref([])
 const afterSales = ref([])
 const newsList = ref([])
+const posts = ref([])
+const likedPostIds = ref([])
+const postComments = ref([])
+const postCommentsMap = ref(new Map())
 
 // ============ 弹窗控制 ============
 const productDialogVisible = ref(false)
@@ -785,11 +912,14 @@ const reviewDetailVisible = ref(false)
 const complaintDetailVisible = ref(false)
 const passwordDialogVisible = ref(false)
 const newsDetailVisible = ref(false)
+const showPostDialog = ref(false)
+const postDetailVisible = ref(false)
 const isEditProduct = ref(false)
 const editingProductId = ref(null)
 const selectedReview = ref(null)
 const selectedComplaint = ref(null)
 const selectedNews = ref(null)
+const selectedPost = ref(null)
 
 // ============ 表单 ============
 const productForm = reactive({
@@ -829,6 +959,18 @@ const handleProductImageRemove = (file, fileList) => {
   updateProductImageList(fileList)
 }
 
+const handlePostImageSuccess = (res, file, fileList) => {
+  if (res.code === 200) {
+    postForm.imageUrl = res.data
+  } else {
+    ElMessage.error(res.message || '上传失败')
+  }
+}
+
+const handlePostImageRemove = () => {
+  postForm.imageUrl = ''
+}
+
 const auctionForm = reactive({
   productId: null, startPrice: 0,
   sellerId: sellerId.value,
@@ -839,6 +981,13 @@ const auctionForm = reactive({
 const profileForm = reactive({
   shopName: '', shopDescription: '', nickname: '', phone: '', avatar: ''
 })
+
+const postForm = reactive({
+  title: '',
+  content: '',
+  imageUrl: ''
+})
+const postFileList = ref([])
 
 const complaintHandleForm = reactive({
   id: null, reason: '', result: ''
@@ -861,6 +1010,10 @@ const totalAuctionRevenue = computed(() => {
   return Number(paidAuctionRevenue.value || 0).toFixed(2)
 })
 
+const postLikesStorageKey = computed(() => `doll_seller_post_likes_${sellerId.value || 'guest'}`)
+const postCommentsStoragePrefix = 'doll_post_comments_'
+const postCommentsGlobalStorageKey = 'doll_post_comments_global'
+
 // ============ 菜单切换 ============
 const handleMenuSelect = (index) => {
   activeMenu.value = index
@@ -870,6 +1023,7 @@ const handleMenuSelect = (index) => {
   else if (index === 'after_sales') loadAfterSales()
   else if (index === 'reviews') loadReviews()
   else if (index === 'complaints') loadComplaints()
+  else if (index === 'community') { loadPersistedPostComments(); loadPosts() }
   else if (index === 'news') loadNews()
   else if (index === 'profile') loadProfile()
 }
@@ -1327,6 +1481,178 @@ const submitComplaintHandle = async () => {
   }
 }
 
+// ============ 互动社区 ============
+const normalizePostId = (postId) => String(postId)
+
+const getCommentUniqueKey = (comment) => {
+  if (!comment) return ''
+  return `${comment.userId || ''}__${String(comment.content || '').trim()}`
+}
+
+const mergePostCommentsIntoMap = (obj, map) => {
+  if (!obj || typeof obj !== 'object') return
+  Object.entries(obj).forEach(([postId, comments]) => {
+    const key = normalizePostId(postId)
+    const existed = map.get(key) || []
+    const incoming = Array.isArray(comments) ? comments : []
+    map.set(key, [...existed, ...incoming])
+  })
+}
+
+const normalizeAndSortComments = (comments) => {
+  const list = Array.isArray(comments) ? comments : []
+  const uniqueMap = new Map()
+  list.forEach(item => {
+    if (!item || !item.content) return
+    const key = item.id ? `id_${item.id}` : `${item.userId || 'u'}_${item.createTime || ''}_${item.content}`
+    uniqueMap.set(key, item)
+  })
+  return Array.from(uniqueMap.values()).sort((a, b) => new Date(b.createTime || 0) - new Date(a.createTime || 0))
+}
+
+const loadPersistedPostComments = () => {
+  const mergedMap = new Map()
+
+  // 先读取全局缓存
+  try {
+    const globalRaw = localStorage.getItem(postCommentsGlobalStorageKey)
+    if (globalRaw) {
+      const parsed = JSON.parse(globalRaw)
+      mergePostCommentsIntoMap(parsed, mergedMap)
+    }
+  } catch (e) {}
+
+  // 再读取各用户的历史缓存（兼容旧数据）
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (!key || !key.startsWith(postCommentsStoragePrefix)) continue
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw)
+      mergePostCommentsIntoMap(parsed, mergedMap)
+    } catch (e) {}
+  }
+
+  // 统一清洗排序，避免历史数据重复或顺序错乱
+  for (const [key, value] of mergedMap.entries()) {
+    mergedMap.set(key, normalizeAndSortComments(value))
+  }
+  postCommentsMap.value = mergedMap
+}
+
+const loadPersistedPostLikes = () => {
+  try {
+    const raw = localStorage.getItem(postLikesStorageKey.value)
+    if (!raw) {
+      likedPostIds.value = []
+      return
+    }
+    const parsed = JSON.parse(raw)
+    likedPostIds.value = Array.isArray(parsed) ? parsed.map(id => String(id)) : []
+  } catch (e) {
+    likedPostIds.value = []
+  }
+}
+
+const persistPostLikes = () => {
+  localStorage.setItem(postLikesStorageKey.value, JSON.stringify(likedPostIds.value))
+}
+
+const isPostLiked = (postId) => likedPostIds.value.includes(String(postId))
+
+const togglePostLike = (postId) => {
+  const key = String(postId)
+  const index = likedPostIds.value.indexOf(key)
+  if (index > -1) {
+    likedPostIds.value.splice(index, 1)
+    ElMessage.success('已取消点赞')
+  } else {
+    likedPostIds.value.push(key)
+    ElMessage.success('点赞成功')
+  }
+  persistPostLikes()
+}
+
+const loadPosts = async () => {
+  try {
+    const res = await request.get('/post/list')
+    posts.value = res.data || []
+  } catch (error) {
+    posts.value = []
+    ElMessage.error('加载帖子失败')
+  }
+}
+
+const loadPostComments = async (postId) => {
+  let serverComments = []
+  try {
+    const res = await request.get(`/post/comment/${postId}`)
+    serverComments = Array.isArray(res.data) ? res.data : []
+  } catch (e) {
+    serverComments = []
+  }
+
+  const key = normalizePostId(postId)
+  const localComments = postCommentsMap.value.get(key) || []
+  const serverKeySet = new Set(serverComments.map(item => getCommentUniqueKey(item)).filter(Boolean))
+  let hasSync = false
+  for (const legacy of localComments) {
+    const content = String(legacy?.content || '').trim()
+    if (!content) continue
+    const uniqueKey = getCommentUniqueKey(legacy)
+    if (!uniqueKey || serverKeySet.has(uniqueKey)) continue
+    try {
+      await request.post('/post/comment', {
+        postId,
+        userId: legacy.userId || sellerId.value,
+        content
+      })
+      serverKeySet.add(uniqueKey)
+      hasSync = true
+    } catch (e) {}
+  }
+
+  if (hasSync) {
+    try {
+      const refetch = await request.get(`/post/comment/${postId}`)
+      serverComments = Array.isArray(refetch.data) ? refetch.data : serverComments
+    } catch (e) {}
+  }
+
+  postComments.value = normalizeAndSortComments([...serverComments, ...localComments])
+}
+
+const openPostDetail = async (post) => {
+  loadPersistedPostComments()
+  selectedPost.value = post
+  await loadPostComments(post.id)
+  postDetailVisible.value = true
+}
+
+const submitPost = async () => {
+  if (!postForm.title || !postForm.content) {
+    ElMessage.warning('请填写标题和内容')
+    return
+  }
+  try {
+    await request.post('/post', {
+      userId: sellerId.value,
+      title: postForm.title,
+      content: postForm.content,
+      images: postForm.imageUrl ? JSON.stringify([postForm.imageUrl]) : null,
+      status: 1
+    })
+    ElMessage.success('发布成功')
+    showPostDialog.value = false
+    Object.assign(postForm, { title: '', content: '', imageUrl: '' })
+    postFileList.value = []
+    loadPosts()
+  } catch (error) {
+    ElMessage.error('发布失败')
+  }
+}
+
 // ============ 资讯浏览 ============
 const loadNews = async () => {
   try {
@@ -1413,6 +1739,8 @@ const handleLogout = () => {
 }
 
 onMounted(() => {
+  loadPersistedPostLikes()
+  loadPersistedPostComments()
   loadProducts()
 })
 </script>
@@ -1610,6 +1938,29 @@ onMounted(() => {
 .custom-table :deep(.el-table__row) {
   transition: background 0.2s;
 }
+
+.posts-feed { display: flex; flex-direction: column; gap: 16px; }
+.simple-post-card {
+  background: #fff;
+  border: 1px solid #f0ebe8;
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.simple-post-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.06); transform: translateY(-2px); }
+.post-user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.user-meta { display: flex; flex-direction: column; }
+.user-id { color: #2d2520; font-size: 14px; font-weight: 600; }
+.post-date { color: #a09088; font-size: 12px; }
+.post-title { margin: 0 0 10px; color: #2d2520; font-size: 18px; }
+.post-text { margin: 0 0 12px; color: #5a4a42; line-height: 1.6; }
+.post-media { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.feed-img { width: 120px; height: 120px; border-radius: 8px; border: 1px solid #f0ebe8; }
+.post-actions { display: flex; gap: 16px; padding-top: 12px; border-top: 1px dashed #f0ebe8; }
+.post-actions .action { display: flex; align-items: center; gap: 6px; color: #a09088; cursor: pointer; }
+.post-actions .action:hover { color: #f5576c; }
+.post-actions .action.liked { color: #f5576c; font-weight: 600; }
 
 .seller-home { min-height: 100vh; background: #faf8f6; }
 
