@@ -1,91 +1,122 @@
 [
   {
-    "title": "玩偶循环",
-    "kicker": "Spring Boot + Vue 3",
-    "body": "二手玩偶交易系统覆盖买家、卖家和管理员，适合课程设计、实训展示与二次开发。",
-    "accent": "#ff5b78",
-    "metrics": [
-      { "label": "角色", "value": "3" },
-      { "label": "模块", "value": "10+" },
-      { "label": "接口", "value": "40+" },
-      { "label": "演示数据", "value": "完整" }
-    ]
+    "step": "01",
+    "title": "进入登录页",
+    "caption": "从统一入口进入系统，买家、卖家和管理员使用同一套登录表单。",
+    "image": "walkthrough/01-login.png",
+    "role": "访客",
+    "focus": "登录入口"
   },
   {
-    "title": "安全登录",
-    "kicker": "认证入口",
-    "body": "统一登录后按角色进入买家端、卖家中心或管理员后台，前端自动保存 JWT 与用户角色。",
-    "image": "screenshots/doll-login.png",
-    "accent": "#ff8562",
-    "metrics": [
-      { "label": "买家", "value": "buyer1" },
-      { "label": "卖家", "value": "seller1" }
-    ]
+    "step": "02",
+    "title": "买家浏览商品",
+    "caption": "首页展示推荐商品和全部商品，买家可以搜索、收藏、举报或加入购物车。",
+    "image": "walkthrough/02-buyer-products.png",
+    "role": "买家",
+    "focus": "商品浏览"
   },
   {
-    "title": "买家体验",
-    "kicker": "商品浏览",
-    "body": "买家可以搜索商品、查看推荐、收藏、加入购物车，并从同一工作台进入订单、社区、拍卖和投诉。",
-    "image": "screenshots/doll-buyer-home.png",
-    "accent": "#f5576c",
-    "metrics": [
-      { "label": "商品", "value": "12" },
-      { "label": "购物车", "value": "可用" }
-    ]
+    "step": "03",
+    "title": "查看商品详情",
+    "caption": "详情页展示商品图片、价格、库存状态、描述、购买入口和用户评价。",
+    "image": "walkthrough/03-buyer-product-detail.png",
+    "role": "买家",
+    "focus": "商品详情"
   },
   {
-    "title": "卖家中心",
-    "kicker": "商品运营",
-    "body": "卖家可以管理上架商品、查看库存状态、维护拍卖活动，并跟进订单、售后与评价。",
-    "image": "screenshots/doll-seller-products.png",
-    "accent": "#ff6f61",
-    "metrics": [
-      { "label": "上架商品", "value": "4" },
-      { "label": "卖家订单", "value": "10" }
-    ]
+    "step": "04",
+    "title": "管理购物车",
+    "caption": "购物车聚合已选商品，可调整数量、勾选结算并检查商品状态。",
+    "image": "walkthrough/04-buyer-cart.png",
+    "role": "买家",
+    "focus": "购物车"
   },
   {
-    "title": "发布商品",
-    "kicker": "创建流程",
-    "body": "商品弹窗支持名称、描述、价格、库存、图片上传，以及立即上架或定时上架两种发布方式。",
-    "image": "screenshots/doll-seller-product-dialog.png",
-    "accent": "#f4a259",
-    "metrics": [
-      { "label": "图片", "value": "上传" },
-      { "label": "发布", "value": "定时" }
-    ]
+    "step": "05",
+    "title": "跟踪订单",
+    "caption": "订单列表显示支付、发货、收货、评价和售后状态，买家可继续处理交易。",
+    "image": "walkthrough/05-buyer-orders.png",
+    "role": "买家",
+    "focus": "订单管理"
   },
   {
-    "title": "管理员后台",
-    "kicker": "平台监控",
-    "body": "管理员看板汇总用户、卖家、商品、订单、交易额和投诉状态，支持持续运营监控。",
-    "image": "screenshots/doll-admin-dashboard.png",
-    "accent": "#ff5b78",
-    "metrics": [
-      { "label": "用户", "value": "11" },
-      { "label": "订单", "value": "13" }
-    ]
+    "step": "06",
+    "title": "互动社区",
+    "caption": "社区模块支持查看帖子和发布分享，让交易平台保留玩偶收藏交流场景。",
+    "image": "walkthrough/06-buyer-community.png",
+    "role": "买家",
+    "focus": "社区"
   },
   {
-    "title": "开源就绪",
-    "kicker": "Release",
-    "body": "项目已补齐烟测脚本、演示截图、视频资产、README、环境变量示例、安全说明和 MIT License。",
-    "accent": "#ff8562",
-    "metrics": [
-      { "label": "前端构建", "value": "通过" },
-      { "label": "后端测试", "value": "通过" },
-      { "label": "API 烟测", "value": "通过" },
-      { "label": "双平台", "value": "发布" }
-    ]
+    "step": "07",
+    "title": "参与拍卖",
+    "caption": "拍卖专区展示起拍价、当前价、倒计时和出价入口，适合稀缺玩偶玩法。",
+    "image": "walkthrough/07-buyer-auctions.png",
+    "role": "买家",
+    "focus": "拍卖专区"
   },
   {
-    "title": "开始体验",
-    "kicker": "localhost:3000",
-    "body": "导入数据库、启动后端与前端后，即可使用演示账号完整体验二手玩偶交易流程。",
-    "accent": "#f5576c",
-    "metrics": [
-      { "label": "前端", "value": "3000" },
-      { "label": "后端", "value": "8082" }
-    ]
+    "step": "08",
+    "title": "卖家商品管理",
+    "caption": "卖家中心统计商品总量、上架状态和库存，并提供编辑、下架和删除操作。",
+    "image": "walkthrough/08-seller-products.png",
+    "role": "卖家",
+    "focus": "商品管理"
+  },
+  {
+    "step": "09",
+    "title": "上架新商品",
+    "caption": "商品弹窗支持名称、描述、价格、库存、图片上传和定时上架。",
+    "image": "walkthrough/09-seller-product-dialog.png",
+    "role": "卖家",
+    "focus": "上架弹窗"
+  },
+  {
+    "step": "10",
+    "title": "处理卖家订单",
+    "caption": "卖家订单页按状态展示交易记录，支持查看买家订单和处理发货。",
+    "image": "walkthrough/10-seller-orders.png",
+    "role": "卖家",
+    "focus": "订单处理"
+  },
+  {
+    "step": "11",
+    "title": "维护拍卖活动",
+    "caption": "卖家可以创建拍卖、查看当前价、中标者和拍卖状态。",
+    "image": "walkthrough/11-seller-auctions.png",
+    "role": "卖家",
+    "focus": "拍卖活动"
+  },
+  {
+    "step": "12",
+    "title": "管理员数据看板",
+    "caption": "管理端汇总注册用户、卖家、商品、订单、交易额和趋势图。",
+    "image": "walkthrough/12-admin-dashboard.png",
+    "role": "管理员",
+    "focus": "数据监控"
+  },
+  {
+    "step": "13",
+    "title": "用户与卖家管理",
+    "caption": "管理员可以查看用户角色、手机号、注册时间和账号状态。",
+    "image": "walkthrough/13-admin-users.png",
+    "role": "管理员",
+    "focus": "用户管理"
+  },
+  {
+    "step": "14",
+    "title": "处理举报投诉",
+    "caption": "投诉列表用于追踪投诉目标、原因、状态和处理结果。",
+    "image": "walkthrough/14-admin-complaints.png",
+    "role": "管理员",
+    "focus": "举报投诉"
+  },
+  {
+    "step": "15",
+    "title": "维护公告内容",
+    "caption": "内容管理支持公告资讯和宣传图，让首页运营内容可持续更新。",
+    "image": "walkthrough/15-admin-news.png",
+    "role": "管理员",
+    "focus": "内容管理"
   }
 ]
