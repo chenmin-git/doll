@@ -29,31 +29,34 @@
 ## 功能模块
 
 ```mermaid
-mindmap
-  root((玩偶循环))
-    买家端
-      商品浏览与搜索
-      智能推荐
-      收藏与购物车
-      订单与售后
-      社区帖子
-      举报投诉
-      个人中心
-    卖家端
-      商品上架管理
-      定时上架
-      拍卖活动
-      订单发货
-      售后处理
-      评价管理
-      店铺资料
-    管理端
-      数据监控
-      用户管理
-      卖家管理
-      订单监控
-      售后与投诉
-      公告资讯
+flowchart TB
+  App[二手玩偶交易系统]
+
+  App --> Buyer[买家端]
+  Buyer --> BuyerProduct[商品浏览与搜索]
+  Buyer --> BuyerRecommend[智能推荐]
+  Buyer --> BuyerCart[收藏与购物车]
+  Buyer --> BuyerOrder[订单与售后]
+  Buyer --> BuyerCommunity[社区帖子]
+  Buyer --> BuyerComplaint[举报投诉]
+  Buyer --> BuyerProfile[个人中心]
+
+  App --> Seller[卖家端]
+  Seller --> SellerProduct[商品上架管理]
+  Seller --> SellerSchedule[定时上架]
+  Seller --> SellerAuction[拍卖活动]
+  Seller --> SellerOrder[订单发货]
+  Seller --> SellerAfterSale[售后处理]
+  Seller --> SellerReview[评价管理]
+  Seller --> SellerStore[店铺资料]
+
+  App --> Admin[管理端]
+  Admin --> AdminDashboard[数据监控]
+  Admin --> AdminUser[用户管理]
+  Admin --> AdminSeller[卖家管理]
+  Admin --> AdminOrder[订单监控]
+  Admin --> AdminComplaint[售后与投诉]
+  Admin --> AdminNews[公告资讯]
 ```
 
 ## 系统架构
