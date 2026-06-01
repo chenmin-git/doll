@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/doll?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: 123456
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/doll?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
   
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -25,11 +25,11 @@ mybatis-plus:
       max-request-size: 10MB
 
 server:
-  port: 8082
+  port: ${SERVER_PORT:8082}
 
 file:
   upload-dir: uploads
 
 jwt:
-  secret: doll-trading-system-secret-key-2024
-  expiration: 604800
+  secret: ${JWT_SECRET:doll-trading-system-demo-secret-change-me}
+  expiration: ${JWT_EXPIRATION:604800}

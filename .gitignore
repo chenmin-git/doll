@@ -17,6 +17,11 @@ Thumbs.db
 uploads/
 *.zip
 *.log
+Home(*).vue
+.playwright-mcp/
+demo-video/node_modules/
+demo-video/out/
+docs/video/check-frames/
 
 # Environment files
 .env

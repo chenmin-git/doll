@@ -1,155 +1,172 @@
 # 二手玩偶交易系统
 
-## 项目简介
-基于 Spring Boot + MyBatis Plus + Vue 3 的二手玩偶交易平台，支持买家、卖家和管理员三种角色。
+一个基于 Spring Boot、MyBatis Plus、Vue 3 和 Element Plus 的二手玩偶交易平台。项目覆盖买家、卖家、管理员三类角色，包含商品交易、购物车、订单售后、拍卖、互动社区、评价、投诉与公告内容管理等模块，适合作为 Java Web 课程设计或全栈 CRUD 实训项目。
 
-## 技术栈
+## 演示视频
 
-### 后端
-- Spring Boot 2.7.14
-- MyBatis Plus 3.5.3.1
-- MySQL 8.0
-- JWT 认证
-- Lombok
-
-### 前端
-- Vue 3
-- Element Plus
-- Vue Router
-- Axios
-- Vite
+演示视频会随仓库发布在 `docs/video/doll-demo.mp4`。
 
 ## 功能模块
 
-### 买家功能
-- 注册登录
-- 商品浏览与搜索
-- 智能推荐
-- 购物车管理
-- 订单管理与售后
-- 互动社区
-- 评价反馈
-- 个人中心
-- 举报投诉
+```mermaid
+mindmap
+  root((玩偶循环))
+    买家端
+      商品浏览与搜索
+      智能推荐
+      收藏与购物车
+      订单与售后
+      社区帖子
+      举报投诉
+      个人中心
+    卖家端
+      商品上架管理
+      定时上架
+      拍卖活动
+      订单发货
+      售后处理
+      评价管理
+      店铺资料
+    管理端
+      数据监控
+      用户管理
+      卖家管理
+      订单监控
+      售后与投诉
+      公告资讯
+```
 
-### 卖家功能
-- 商品上架管理
-- 定时上架
-- 拍卖活动管理
-- 评价管理
-- 举报处理
-- 店铺信息管理
+## 系统架构
 
-### 管理员功能
-- 用户管理
-- 卖家管理
-- 系统管理
-- 内容管理（宣传图、公告资讯）
-- 举报投诉处理
-- 平台数据监控
-- 订单监控与纠纷处理
+```mermaid
+flowchart LR
+  Browser[浏览器 / Vue 3] --> Vite[Vite Dev Server :3000]
+  Vite -->|/api 代理| API[Spring Boot API :8082]
+  API --> Service[业务服务层]
+  Service --> MyBatis[MyBatis Plus]
+  MyBatis --> MySQL[(MySQL doll)]
+  API --> Uploads[本地 uploads 图片目录]
+```
+
+## 界面预览
+
+| 登录页 | 买家商品浏览 |
+| --- | --- |
+| ![登录页](docs/screenshots/doll-login.png) | ![买家商品浏览](docs/screenshots/doll-buyer-home.png) |
+
+| 卖家商品管理 | 上架商品弹窗 |
+| --- | --- |
+| ![卖家商品管理](docs/screenshots/doll-seller-products.png) | ![上架商品弹窗](docs/screenshots/doll-seller-product-dialog.png) |
+
+| 管理员数据监控 |
+| --- |
+| ![管理员数据监控](docs/screenshots/doll-admin-dashboard.png) |
+
+## 技术栈
+
+- 后端：Spring Boot 2.7.14、MyBatis Plus 3.5.3.1、MySQL 8、JWT、Lombok
+- 前端：Vue 3、Vue Router、Pinia、Element Plus、Axios、Vite
+- 演示视频：Remotion
+- 推荐运行环境：JDK 17、Node.js 18+、MySQL 8+
 
 ## 快速开始
 
-### 1. 数据库配置
+### 1. 初始化数据库
+
+默认数据库名为 `doll`。如果你的 MySQL 账号密码不是 `root/root`，请按实际情况调整命令或设置环境变量。
+
 ```bash
-# 导入数据库
-mysql -u root -p123456 < schema.sql
+mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS doll DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -uroot -proot doll < doll.sql
 ```
 
 ### 2. 启动后端
+
 ```bash
 cd backend
-mvn clean install
+export JAVA_HOME=$(/usr/libexec/java_home -v 17) # macOS，可按本机环境替换
+export SPRING_DATASOURCE_PASSWORD=root
 mvn spring-boot:run
 ```
-后端服务运行在 http://localhost:8080
+
+后端默认运行在 `http://localhost:8082`。
 
 ### 3. 启动前端
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-前端服务运行在 http://localhost:3000
 
-## 数据库配置
-- 数据库名: doll
-- 用户名: root
-- 密码: 123456
-- 端口: 3306
+前端默认运行在 `http://localhost:3000`，开发代理会把 `/api` 转发到后端 `8082`。
 
-## API 接口
+## 环境变量
 
-### 用户相关
-- POST /api/user/login - 用户登录
-- POST /api/user/register - 用户注册
-- PUT /api/user/profile/{id} - 更新个人信息
-- GET /api/user/{id} - 获取用户信息
+参考 `.env.example`：
 
-### 商品相关
-- GET /api/product/search - 搜索商品
-- GET /api/product/recommend - 推荐商品
-- POST /api/product - 创建商品
-- PUT /api/product/{id} - 更新商品
-- DELETE /api/product/{id} - 删除商品
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://localhost:3306/doll?...` | MySQL 连接串 |
+| `SPRING_DATASOURCE_USERNAME` | `root` | MySQL 用户名 |
+| `SPRING_DATASOURCE_PASSWORD` | `root` | MySQL 密码 |
+| `SERVER_PORT` | `8082` | 后端端口 |
+| `JWT_SECRET` | demo secret | JWT 签名密钥，生产环境必须替换 |
+| `JWT_EXPIRATION` | `604800` | Token 有效期，单位秒 |
+| `VITE_API_BASE_URL` | `/api` | 前端 API 基础路径 |
 
-### 购物车相关
-- POST /api/cart - 添加到购物车
-- GET /api/cart/user/{userId} - 获取购物车
-- DELETE /api/cart/{id} - 删除购物车项
-- PUT /api/cart/{id} - 更新购物车
+## 演示账号
 
-### 订单相关
-- POST /api/order - 创建订单
-- GET /api/order/buyer/{buyerId} - 买家订单
-- GET /api/order/seller/{sellerId} - 卖家订单
-- PUT /api/order/{id}/status - 更新订单状态
+| 角色 | 用户名 | 密码 |
+| --- | --- | --- |
+| 买家 | `buyer1` | `123456` |
+| 卖家 | `seller1` | `123456` |
+| 管理员 | `admin` | `admin123` |
 
-### 评价相关
-- POST /api/review - 创建评价
-- GET /api/review/product/{productId} - 商品评价
-- GET /api/review/seller/{sellerId} - 卖家评价
+## 测试与验证
 
-### 投诉相关
-- POST /api/complaint - 提交投诉
-- GET /api/complaint/user/{userId} - 用户投诉
-- PUT /api/complaint/{id} - 处理投诉
-- GET /api/complaint/list - 投诉列表
+启动前后端后执行：
 
-### 社区相关
-- POST /api/post - 发布帖子
-- GET /api/post/list - 帖子列表
-- GET /api/post/{id} - 帖子详情
+```bash
+scripts/smoke_api.sh
+```
+
+已验证项目：
+
+- `mvn test`
+- `npm run build`
+- `scripts/smoke_api.sh`
+- 浏览器烟测：登录页、买家商品浏览、卖家商品管理、上架商品弹窗、管理员数据监控
+
+## 常用 API
+
+- `POST /api/user/login`：登录
+- `POST /api/user/register`：注册
+- `GET /api/product/search?keyword=娃`：商品搜索
+- `GET /api/product/recommend?userId=4`：推荐商品
+- `GET /api/cart/user/{userId}`：购物车
+- `GET /api/order/buyer/{buyerId}`：买家订单
+- `GET /api/order/seller/{sellerId}`：卖家订单
+- `GET /api/auction/list`：拍卖列表
+- `GET /api/complaint/list`：投诉列表
+- `GET /api/news/list`：公告资讯
 
 ## 项目结构
 
-```
-doll-trading-system/
-├── backend/                    # 后端项目
-│   ├── src/main/java/com/doll/
-│   │   ├── entity/            # 实体类
-│   │   ├── mapper/            # MyBatis Mapper
-│   │   ├── service/           # 服务层
-│   │   ├── controller/        # 控制器
-│   │   ├── common/            # 公共类
-│   │   └── util/              # 工具类
-│   └── src/main/resources/
-│       └── application.yml    # 配置文件
-├── frontend/                   # 前端项目
-│   ├── src/
-│   │   ├── views/             # 页面组件
-│   │   ├── router/            # 路由配置
-│   │   └── utils/             # 工具类
-│   └── package.json
-└── schema.sql                 # 数据库脚本
+```text
+.
+├── backend/                 # Spring Boot 后端
+├── frontend/                # Vue 3 前端
+├── docs/
+│   ├── screenshots/         # 演示截图
+│   └── video/               # 演示视频
+├── scripts/
+│   └── smoke_api.sh         # API 烟测脚本
+├── doll.sql                 # 干净演示数据库
+├── schema.sql               # 基础建表脚本
+└── .env.example             # 环境变量示例
 ```
 
-## 默认账号
-系统启动后可以注册新用户，选择角色（买家/卖家）
+## 开源安全说明
 
-## 注意事项
-1. 确保 MySQL 服务已启动
-2. 确保端口 8080 和 3000 未被占用
-3. 首次运行需要执行数据库脚本
-4. JWT Token 有效期为 7 天
+本仓库只包含演示配置与合成演示数据。真实部署前请替换 `JWT_SECRET`、数据库密码和演示账号密码，并阅读 `SECURITY.md`。
